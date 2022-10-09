@@ -1,0 +1,139 @@
+namespace: mariadb-ha
+
+mariadb-bootstrap:
+  defines: runnable
+  containers:
+    defines: containers
+    mariadb:
+      image: bitnami/mariadb-galera
+      image-tag: <- `${mariadb-image}`
+      ports:
+        - 3306:3306
+        - 4444:4444
+        - 4567:4567
+        - 4568:4568
+      environment:
+        - MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes
+        - MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://
+      paths:
+        - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
+  # files:
+  #   advanced-config:
+  #     container: mariadb
+  #     mode: 0644
+  #     path: /opt/bitnami/mariadb/conf/custom.cnf
+  #     contents: <<< files/custom.cnf   
+  variables:
+    mariadb-image:
+      value: <- $mariadb-image-tag
+      type: string
+    mysql-root-user:
+      env: MARIADB_ROOT_USER
+      value: <- $mariadb-root-user
+      type: string
+    mysql-root-password:
+      env: MARIADB_ROOT_PASSWORD
+      value: <- $mariadb-root-password
+      type: string
+    mysql-database:
+      env: MYSQL_DATABASE
+      value: <- $mariadb-database-name
+      type: string
+    mysql-user:
+      env: MYSQL_USER
+      value: <- $mariadb-user-name
+      type: string
+    mysql-password:
+      env: MYSQL_PASSWORD
+      value: <- $mariadb-user-password
+      type: string
+    galera-cluster-name:
+      env: MARIADB_GALERA_CLUSTER_NAME
+      value: <- $mariadb-cluster-name
+      type: string
+    galera-mariabackup-user:
+      env: MARIADB_GALERA_MARIABACKUP_USER
+      value: <- $mariadb-mariabackup-user
+      type: string
+    galera-mariabackup-pasword:
+      env: MARIADB_GALERA_MARIABACKUP_PASSWORD
+      value: <- $mariadb-mariabackup-password
+      type: string
+    galera-replication-user:
+      env: MARIADB_REPLICATION_USER
+      value: <- $mariadb-replication-user
+      type: string
+    galera-replication-password:
+      env: MARIADB_REPLICATION_PASSWORD
+      value: <- $mariadb-replication-password
+      type: string
+
+mariadb-slave-common:
+  defines: runnable
+  containers:
+    defines: containers
+    mariadb:
+      image: bitnami/mariadb-galera
+      image-tag: <- `${mariadb-image}`
+      ports:
+        - 3306:3306
+        - 4444:4444
+        - 4567:4567
+        - 4568:4568
+      # environment:
+      #   - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567,0.0.0.0:4567`
+      paths:
+        - <- `${monk-volume-path}/mariadb-slave-${slave-id}:/bitnami/mariadb`
+  # files:
+  #   advanced-config:
+  #     container: mariadb
+  #     mode: 0644
+  #     path: /opt/bitnami/mariadb/conf/custom.cnf
+  #     contents: <<< files/custom.cnf        
+  variables:
+    mariadb-image:
+      value: <- $mariadb-image-tag
+      type: string
+    mysql-root-user:
+      env: MARIADB_ROOT_USER
+      value: <- $mariadb-root-user
+      type: string
+    mysql-root-password:
+      env: MARIADB_ROOT_PASSWORD
+      value: <- $mariadb-root-password
+      type: string
+    galera-cluster-name:
+      env: MARIADB_GALERA_CLUSTER_NAME
+      value: <- $mariadb-cluster-name
+      type: string
+    galera-mariabackup-user:
+      env: MARIADB_GALERA_MARIABACKUP_USER
+      value: <- $mariadb-mariabackup-user
+      type: string
+    galera-mariabackup-pasword:
+      env: MARIADB_GALERA_MARIABACKUP_PASSWORD
+      value: <- $mariadb-mariabackup-password
+      type: string
+    galera-replication-user:
+      env: MARIADB_REPLICATION_USER
+      value: <- $mariadb-replication-user
+      type: string
+    galera-replication-password:
+      env: MARIADB_REPLICATION_PASSWORD
+      value: <- $mariadb-replication-password
+      type: string
+    master-internal-host-name:
+      type: string
+      value: <- get-hostname("mariadb-ha/mariadb-bootstrap", "mariadb") split(".dns.podman") join("") concat-all      
+
+monk-slave-1:
+  defines: runnable
+  inherits: ./mariadb-slave-common
+  variables:
+    slave-id: 1
+
+monk-slave-2:
+  defines: runnable
+  inherits: ./mariadb-slave-common
+  variables:
+    slave-id: 2  

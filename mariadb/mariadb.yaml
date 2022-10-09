@@ -1,0 +1,43 @@
+namespace: mariadb
+
+mariadb:
+  defines: runnable
+  metadata:
+    defines: metadata
+    name: mariadb
+    description: 
+    tags: self hosted, database
+    website: 
+    source: 
+    publisher: "monk.io"
+    icon:  
+  containers:
+    defines: containers
+    mariadb:
+      image: mariadb
+      image-tag: <- `${mariadb-image}`
+      ports:
+        - 3306:3306
+      paths:
+        - <- `${monk-volume-path}/mariadb:/var/lib/mysql/`
+        - <- `${monk-volume-path}/mariadb-conf:/etc/mysql/conf.d`
+  variables:
+    mariadb-image:
+      value: <- $mariadb-image-tag
+      type: string
+    mysql-root-password:
+      env: MYSQL_ROOT_PASSWORD    
+      value: <- $mariadb-root-password
+      type: string
+    mysql-database:
+      env: MYSQL_DATABASE
+      value: <- $mariadb-database-name
+      type: string
+    mysql-user:
+      env: MYSQL_USER
+      value: <- $mariadb-user-name
+      type: string
+    mysql-password:
+      env: MYSQL_PASSWORD
+      value: <- $mariadb-user-password
+      type: string

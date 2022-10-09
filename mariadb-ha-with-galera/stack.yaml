@@ -1,0 +1,32 @@
+namespace: mariadb-ha
+
+stack:
+  defines: process-group
+  metadata:
+    defines: metadata
+    name: mariadb
+    description: 
+    tags: self hosted, database
+    website: 
+    source: 
+    publisher: "monk.io"
+    icon:   
+  runnable-list:
+    # - mariadb-ha/mariadb-bootstrap
+    - mariadb-ha/monk-slave-1
+    # - mariadb-ha/monk-slave-2
+  variables:
+    mariadb-image-tag: latest
+    mariadb-root-user: root
+    mariadb-root-password: 4wfoA7auxY
+    mariadb-database-name: mariadb
+    mariadb-user-name: mariadbuser
+    mariadb-user-password: Cz9mGzmRtW
+    mariadb-cluster-name: my_galera 
+    mariadb-mariabackup-user: my_mariabackup_user 
+    mariadb-mariabackup-password: cNQAW4GT
+    mariadb-replication-user: my_replication_user
+    mariadb-replication-password: FDkxXPB7
+
+
+    
