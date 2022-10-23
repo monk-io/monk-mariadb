@@ -2,7 +2,6 @@
 
 This repository contains Monk.io template to deploy mariadb system either locally or on cloud of your choice (AWS, GCP, Azure, Digital Ocean).
 
-This template includes Nginx as a reverse proxy  with rabbitmq out of box.
 
 ## Start
 
@@ -21,7 +20,7 @@ In order to load templates and change configuration simply use below commands:
 git clone https://github.com/kaganmersin/monk-mariadb
 
 # and change directory to the monk-mariadb  template folder
-cd monk-mariadb
+cd mariadb
 ```
 
 ## Configuration
@@ -45,10 +44,10 @@ The current variables can be found in `mariadb/variables` section
 | Variable | Description | Type | Example |
 |----------|-------------|------|---------|
 | **mariadb-image-tag** | Mariab image version. | string | latest |
-| **mariadb-root-password** | Mariab image version. | string | latest |
+| **mariadb-root-password** | Mariab image version. | string | "4wfoA7auxY" |
 | **mariadb-database-name** | Mariab image version. | string | latest |
-| **mariadb-user-name** | Mariab image version. | string | latest |
-| **mariadb-user-password** | Mariab image version. | string | latest |
+| **mariadb-user-name** | Mariab database user name. | string | mariadbuser |
+| **mariadb-user-password** | Mariab database user password. | string | "Cz9mGzmRtW" |
 
 
 
@@ -133,55 +132,41 @@ Once cluster is ready execute the same command as for local and select your clus
 
 ✨ Loaded:
  ├─🔩 Runnables:
- │  ├─🧩 rabbitmq-persistent-volume/rabbitmq
- │  └─🧩 rabbitmq-persistent-volume/nginx
+ │  └─🧩 mariadb/mariadb
  ├─🔗 Process groups:
- │  └─🧩 rabbitmq-persistent-volume/stack
+ │  └─🧩 mariadb/stack
  └─⚙️ Entity instances:
-    └─🧩 rabbitmq-persistent-volume/rabbitmq/metadata
+    └─🧩 mariadb/mariadb/metadata
 ✔ All templates loaded successfully
 
-➜  monk list rabbitmq
+➜  monk list mariadb
 
 ✔ Got the list
-Type      Template                             Repository                  Version      Tags
-runnable  nginx/latest                         rabbitmq-persistent-volume  -            -
-runnable  nginx/reverse-proxy                  rabbitmq-persistent-volume  -            -
-runnable  nginx/reverse-proxy-ssl-certbot      rabbitmq-persistent-volume  1.15-alpine  -
-runnable  rabbitmq-persistent-volume/nginx     local                       -            -
-runnable  rabbitmq-persistent-volume/rabbitmq  local                       -            self hosted, message brokers, message queues
-group     rabbitmq-persistent-volume/stack     local                       -            -
+✔ Got the list
+Type      Template         Repository  Version  Tags
+runnable  mariadb/mariadb  local       -        self hosted, database
+group     mariadb/stack    local       -        -
 
-➜  monk run rabbitmq-persistent-volume/stack
+➜  monk run mariadb/stack
 
-✔ Started local/rabbitmq-persistent-volume/stack
+✔ Started local/mariadb/stack
 
 ```
 
 ## Logs & Shell
 
 ```bash
-# show Rabbitmq logs
-➜  monk logs -l 1000 -f rabbitmq-persistent-volume/rabbitmq
-
-# show Nginx logs
-➜  monk logs -l 1000 -f rabbitmq-persistent-volume/nginx
-
-# access shell in the container running Rabbitmq
-➜  monk shell rabbitmq-persistent-volume/rabbitmq
-
-# access shell in the container running Nginx
-➜  monk shell rabbitmq-persistent-volume/nginx
+# show Mariadb logs
+➜  monk logs -l 1000 -f local/mariadb/mariadb
 
 ```
 
 ## Stop, remove and clean up workloads and templates
 
 ```bash
-➜ monk purge -x rabbitmq-persistent-volume/stack rabbitmq-persistent-volume/rabbitmq rabbitmq-persistent-volume/nginx 
+➜ monk purge -x -a local/mariadb/mariadb local/mariadb/stack
 
-✔ rabbitmq-persistent-volume/stack purged
-✔ rabbitmq-persistent-volume/rabbitmq purged
-✔ rabbitmq-persistent-volume/nginx purged
+✔ local/mariadb/mariadb purged
+✔ local/mariadb/stack purged
 
 ```

@@ -5,17 +5,16 @@ stack:
   metadata:
     defines: metadata
     name: mariadb
-    description: 
+    description: MariaDB Galera is a multi-primary database cluster solution for synchronous replication and high availability.
     tags: self hosted, database
-    website: 
-    source: 
+    website: https://mariadb.org/
+    source: https://github.com/MariaDB/
     publisher: "monk.io"
-    icon:   
+    icon: https://raw.githubusercontent.com/docker-library/docs/fe985dcb24154456254e252d1fa4a2b6b656ee80/mariadb/logo.png
   runnable-list:
     - mariadb-ha/mariadb-bootstrap
     - mariadb-ha/monk-slave-1
     - mariadb-ha/monk-slave-2
-    - mariadb-ha/telnet-1
   variables:
     mariadb-image-tag: latest
     mariadb-root-user: root

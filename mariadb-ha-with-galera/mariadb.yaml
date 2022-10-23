@@ -19,7 +19,16 @@ mariadb-bootstrap:
         - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
       paths:
         - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
+  files:
+    custom-conf:
+      container: mariadb
+      mode: 0644
+      path: /opt/bitnami/mariadb/conf/my_custom.cnf
+      contents: <<< files/custom.cnf
   variables:
+    node-id:
+      value: 1
+      type: int  
     mariadb-image:
       value: <- $mariadb-image-tag
       type: string
@@ -78,7 +87,13 @@ mariadb-slave-common:
   depends:
     wait-for:
       runnables:
-        - mariadb-ha/mariadb-bootstrap  
+        - mariadb-ha/mariadb-bootstrap
+  files:
+    custom-conf:
+      container: mariadb
+      mode: 0644
+      path: /opt/bitnami/mariadb/conf/my_custom.cnf
+      contents: <<< files/custom.cnf      
   containers:
     defines: containers
     mariadb:
@@ -95,7 +110,7 @@ mariadb-slave-common:
         - MARIADB_GALERA_CLUSTER_BOOTSTRAP=no
         - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=no        
       paths:
-        - <- `${monk-volume-path}/mariadb-slave-${slave-id}:/bitnami/mariadb`
+        - <- `${monk-volume-path}/mariadb-slave-${node-id}:/bitnami/mariadb`
   variables:
     mariadb-image:
       value: <- $mariadb-image-tag
@@ -146,12 +161,13 @@ monk-slave-1:
   defines: runnable
   inherits: ./mariadb-slave-common
   variables:
-    slave-id: 1
+    node-id: 2
 
 monk-slave-2:
   defines: runnable
   inherits: ./mariadb-slave-common
   variables:
-    slave-id: 2
+    node-id: 3
+
 
   

@@ -10,4 +10,3 @@ stack:
     mariadb-database-name: "mariadb"
     mariadb-user-name: "mariadbuser"
     mariadb-user-password: "Cz9mGzmRtW"
-    node-count: 3
