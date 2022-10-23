@@ -15,14 +15,10 @@ mariadb-bootstrap:
       environment:
         - MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes
         - MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://
+        - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=yes
+        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-ip-address-public};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-ip-address-public} --wsrep_sst_receive_address=${node-ip-address-public}`
       paths:
         - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
-  # files:
-  #   advanced-config:
-  #     container: mariadb
-  #     mode: 0644
-  #     path: /opt/bitnami/mariadb/conf/custom.cnf
-  #     contents: <<< files/custom.cnf   
   variables:
     mariadb-image:
       value: <- $mariadb-image-tag
@@ -36,15 +32,15 @@ mariadb-bootstrap:
       value: <- $mariadb-root-password
       type: string
     mysql-database:
-      env: MYSQL_DATABASE
+      env: MARIADB_DATABASE
       value: <- $mariadb-database-name
       type: string
     mysql-user:
-      env: MYSQL_USER
+      env: MARIADB_USER
       value: <- $mariadb-user-name
       type: string
     mysql-password:
-      env: MYSQL_PASSWORD
+      env: MARIADB_PASSWORD
       value: <- $mariadb-user-password
       type: string
     galera-cluster-name:
@@ -67,6 +63,10 @@ mariadb-bootstrap:
       env: MARIADB_REPLICATION_PASSWORD
       value: <- $mariadb-replication-password
       type: string
+    master-node-ip-address:
+      env: NODE_IP_ADRESS
+      value: <- ip-address-public("mariadb-ha/mariadb-bootstrap")
+      type: string      
 
 mariadb-slave-common:
   defines: runnable
@@ -80,16 +80,13 @@ mariadb-slave-common:
         - 4444:4444
         - 4567:4567
         - 4568:4568
-      # environment:
-      #   - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567,0.0.0.0:4567`
+      environment:
+        - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567`
+        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-ip-address-public};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-ip-address-public} --wsrep_sst_receive_address=${node-ip-address-public}`
+        - MARIADB_GALERA_CLUSTER_BOOTSTRAP=no
+        - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=no        
       paths:
         - <- `${monk-volume-path}/mariadb-slave-${slave-id}:/bitnami/mariadb`
-  # files:
-  #   advanced-config:
-  #     container: mariadb
-  #     mode: 0644
-  #     path: /opt/bitnami/mariadb/conf/custom.cnf
-  #     contents: <<< files/custom.cnf        
   variables:
     mariadb-image:
       value: <- $mariadb-image-tag
@@ -123,8 +120,18 @@ mariadb-slave-common:
       value: <- $mariadb-replication-password
       type: string
     master-internal-host-name:
+      env: MASTER_INTERNAL_HOST_NAME
       type: string
-      value: <- get-hostname("mariadb-ha/mariadb-bootstrap", "mariadb") split(".dns.podman") join("") concat-all      
+      value: <- get-hostname("mariadb-ha/mariadb-bootstrap", "mariadb") split(".dns.podman") join("") concat-all
+    master-node-ip-address:
+      env: MASTER_NODE_IP_ADRESS
+      value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
+      type: string
+    node-ip-address-public:
+      env: NODE_IP_ADRESS_PUBLIC
+      value: <- ip-address-public
+      type: string      
+      
 
 monk-slave-1:
   defines: runnable
@@ -136,4 +143,4 @@ monk-slave-2:
   defines: runnable
   inherits: ./mariadb-slave-common
   variables:
-    slave-id: 2  
+    slave-id: 2

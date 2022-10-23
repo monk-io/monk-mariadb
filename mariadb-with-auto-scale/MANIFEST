@@ -1,2 +1,0 @@
-REPO monk-mariadb
-LOAD mariadb.yaml stack.yaml
