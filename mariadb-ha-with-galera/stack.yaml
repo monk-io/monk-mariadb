@@ -15,6 +15,7 @@ stack:
     - mariadb-ha/mariadb-bootstrap
     - mariadb-ha/monk-slave-1
     - mariadb-ha/monk-slave-2
+    - mariadb-ha/telnet-1
   variables:
     mariadb-image-tag: latest
     mariadb-root-user: root

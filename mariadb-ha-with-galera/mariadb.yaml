@@ -16,7 +16,7 @@ mariadb-bootstrap:
         - MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes
         - MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://
         - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=yes
-        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-ip-address-public};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-ip-address-public} --wsrep_sst_receive_address=${node-ip-address-public}`
+        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
       paths:
         - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
   variables:
@@ -63,13 +63,22 @@ mariadb-bootstrap:
       env: MARIADB_REPLICATION_PASSWORD
       value: <- $mariadb-replication-password
       type: string
+    node-public-ip-address:
+      env: NODE_PUBLIC_IP_ADRESS
+      value: <- ip-address-public
+      type: string
     master-node-ip-address:
-      env: NODE_IP_ADRESS
-      value: <- ip-address-public("mariadb-ha/mariadb-bootstrap")
+      env: MASTER_NODE_IP_ADRESS
+      value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
       type: string      
+      
 
 mariadb-slave-common:
   defines: runnable
+  depends:
+    wait-for:
+      runnables:
+        - mariadb-ha/mariadb-bootstrap  
   containers:
     defines: containers
     mariadb:
@@ -82,7 +91,7 @@ mariadb-slave-common:
         - 4568:4568
       environment:
         - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567`
-        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-ip-address-public};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-ip-address-public} --wsrep_sst_receive_address=${node-ip-address-public}`
+        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
         - MARIADB_GALERA_CLUSTER_BOOTSTRAP=no
         - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=no        
       paths:
@@ -127,8 +136,8 @@ mariadb-slave-common:
       env: MASTER_NODE_IP_ADRESS
       value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
       type: string
-    node-ip-address-public:
-      env: NODE_IP_ADRESS_PUBLIC
+    node-public-ip-address:
+      env: NODE_PUBLIC_IP_ADRESS
       value: <- ip-address-public
       type: string      
       
@@ -144,3 +153,5 @@ monk-slave-2:
   inherits: ./mariadb-slave-common
   variables:
     slave-id: 2
+
+  
