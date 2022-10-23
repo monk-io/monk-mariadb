@@ -19,8 +19,8 @@ In order to load templates and change configuration simply use below commands:
 ```bash
 git clone https://github.com/kaganmersin/monk-mariadb
 
-# and change directory to the monk-mariadb  template folder
-cd mariadb
+# and change directory to the monk-mariadb/mariadb  template folder
+cd monk-mariadb/mariadb
 ```
 
 ## Configuration

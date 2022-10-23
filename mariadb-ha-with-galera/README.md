@@ -2,7 +2,6 @@
 
 This repository contains Monk.io template to deploy mariadb system either locally or on cloud of your choice (AWS, GCP, Azure, Digital Ocean).
 
-This template includes Nginx as a reverse proxy  with rabbitmq out of box.
 
 ## Start
 
@@ -20,24 +19,40 @@ In order to load templates and change configuration simply use below commands:
 ```bash
 git clone https://github.com/kaganmersin/monk-mariadb
 
-# and change directory to the monk-mariadb  template folder
-cd monk-mariadb
+# and change directory to the monk-mariadb/mariadb-ha-with-galera template folder
+cd monk-mariadb/mariadb-ha-with-galera
 ```
 
 ## Configuration
 
 You can add/remove configuration of the template.
 
-The current variables can be found in `mariadb/variables` section
+The current variables can be found in `mariadb-ha/variables` section
 
 ```yaml
   variables:
-    mariadb-image-tag: "latest"
-    mariadb-root-password: "4wfoA7auxY"
-    mariadb-database-name: "mariadb"
-    mariadb-user-name: "mariadbuser"
-    mariadb-user-password: "Cz9mGzmRtW"
+    mariadb-image-tag: latest
+    mariadb-root-user: root
+    mariadb-root-password: 4wfoA7auxY
+    mariadb-database-name: mariadb
+    mariadb-user-name: mariadbuser
+    mariadb-user-password: Cz9mGzmRtW
+    mariadb-cluster-name: my_galera 
+    mariadb-mariabackup-user: my_mariabackup_user 
+    mariadb-mariabackup-password: cNQAW4GT
+    mariadb-replication-user: my_replication_user
+    mariadb-replication-password: FDkxXPB7
 ```
+
+### Mariadb configuration files
+
+You can find configuration file named custom.cnf in `/files` directory in repository and can edit before the running kit. Configuration file will be bound to the container while run monk-mariadb kit 
+
+
+| Configuration File	 | Format Used | Directory in Container | Purpose 
+|----------|-------------|------|---------|
+| **custom.cnf** | cnf | `/opt/bitnami/mariadb/conf/my_custom.cnf` | Primary configuration file for Mariadb
+
 
 
 ##  Template variables
@@ -45,46 +60,11 @@ The current variables can be found in `mariadb/variables` section
 | Variable | Description | Type | Example |
 |----------|-------------|------|---------|
 | **mariadb-image-tag** | Mariab image version. | string | latest |
-| **mariadb-root-password** | Mariab image version. | string | latest |
+| **mariadb-root-password** | Mariab image version. | string | "4wfoA7auxY" |
 | **mariadb-database-name** | Mariab image version. | string | latest |
-| **mariadb-user-name** | Mariab image version. | string | latest |
-| **mariadb-user-password** | Mariab image version. | string | latest |
+| **mariadb-user-name** | Mariab database user name. | string | mariadbuser |
+| **mariadb-user-password** | Mariab database user password. | string | "Cz9mGzmRtW" |
 
-
-
-
-## Local Deployment
-
-First clone the repository simply run below command after launching `monkd`:
-:
-
-```bash
-➜  monk load MANIFEST
-
-✨ Loaded:
- ├─🔩 Runnables:
- │  └─🧩 mariadb/mariadb
- ├─🔗 Process groups:
- │  └─🧩 mariadb/stack
- └─⚙️ Entity instances:
-    └─🧩 mariadb/mariadb/metadata
-✔ All templates loaded successfully
-
-➜  monk list mariadb
-
-✔ Got the list
-Type      Template         Repository  Version  Tags
-runnable  mariadb/mariadb  local       -        self hosted, database
-group     mariadb/stack    local       -        -
-
-
-➜  monk run  mariadb/stack
-
-✔ Started local/mariadb/stack
-
-```
-
-This will start the entire mariadb/stack 
 
 
 ## Cloud Deployment
@@ -103,7 +83,7 @@ Your cluster has been created successfully.
 ➜  monk cluster grow -p gcp
 ? Cloud provider gcp
 ? Name of the new instance my-instance
-? Tags (split by whitespace) mariadb
+? Tags (split by whitespace) mariadbha
 ? Region europe-central2
 ? Zone europe-central2-a
 ? Instance type e2-medium
@@ -133,55 +113,56 @@ Once cluster is ready execute the same command as for local and select your clus
 
 ✨ Loaded:
  ├─🔩 Runnables:
- │  ├─🧩 rabbitmq-persistent-volume/rabbitmq
- │  └─🧩 rabbitmq-persistent-volume/nginx
+ │  ├─🧩 mariadb-ha/mariadb-bootstrap
+ │  ├─🧩 mariadb-ha/monk-slave-2
+ │  ├─🧩 mariadb-ha/mariadb-slave-common
+ │  └─🧩 mariadb-ha/monk-slave-1
  ├─🔗 Process groups:
- │  └─🧩 rabbitmq-persistent-volume/stack
+ │  └─🧩 mariadb-ha/stack
  └─⚙️ Entity instances:
-    └─🧩 rabbitmq-persistent-volume/rabbitmq/metadata
+    └─🧩 mariadb-ha/stack/metadata
 ✔ All templates loaded successfully
 
-➜  monk list rabbitmq
+➜  monk list mariadb-ha
 
 ✔ Got the list
-Type      Template                             Repository                  Version      Tags
-runnable  nginx/latest                         rabbitmq-persistent-volume  -            -
-runnable  nginx/reverse-proxy                  rabbitmq-persistent-volume  -            -
-runnable  nginx/reverse-proxy-ssl-certbot      rabbitmq-persistent-volume  1.15-alpine  -
-runnable  rabbitmq-persistent-volume/nginx     local                       -            -
-runnable  rabbitmq-persistent-volume/rabbitmq  local                       -            self hosted, message brokers, message queues
-group     rabbitmq-persistent-volume/stack     local                       -            -
+✔ Got the list
+Type      Template                         Repository  Version  Tags
+runnable  mariadb-ha/mariadb-bootstrap     local       -        -
+runnable  mariadb-ha/mariadb-slave-common  local       -        -
+runnable  mariadb-ha/monk-slave-1          local       -        -
+runnable  mariadb-ha/monk-slave-2          local       -        -
+group     mariadb-ha/stack                 local       -        self hosted, database
 
-➜  monk run rabbitmq-persistent-volume/stack
 
-✔ Started local/rabbitmq-persistent-volume/stack
+➜  monk run  mariadb-ha/stack
+
+✔ Started local/mariadb/stack
 
 ```
 
 ## Logs & Shell
 
 ```bash
-# show Rabbitmq logs
-➜  monk logs -l 1000 -f rabbitmq-persistent-volume/rabbitmq
+# show Mariadb master logs
+➜  monk logs -l 1000 -f local/mariadb-ha/mariadb-bootstrap
 
-# show Nginx logs
-➜  monk logs -l 1000 -f rabbitmq-persistent-volume/nginx
+# show Mariadb slave-1 logs
+➜  monk logs -l 1000 -f local/mariadb-ha/monk-slave-1
 
-# access shell in the container running Rabbitmq
-➜  monk shell rabbitmq-persistent-volume/rabbitmq
-
-# access shell in the container running Nginx
-➜  monk shell rabbitmq-persistent-volume/nginx
+# show Mariadb slave-2 logs
+➜  monk logs -l 1000 -f local/mariadb-ha/monk-slave-2
 
 ```
 
 ## Stop, remove and clean up workloads and templates
 
 ```bash
-➜ monk purge -x rabbitmq-persistent-volume/stack rabbitmq-persistent-volume/rabbitmq rabbitmq-persistent-volume/nginx 
+➜ monk purge -x -a local/mariadb-ha/mariadb-bootstrap local/mariadb-ha/monk-slave-1  local/mariadb-ha/monk-slave-2  local/mariadb-ha/stack
 
-✔ rabbitmq-persistent-volume/stack purged
-✔ rabbitmq-persistent-volume/rabbitmq purged
-✔ rabbitmq-persistent-volume/nginx purged
+✔ local/mariadb-ha/mariadb-bootstrap purged
+✔ local/mariadb-ha/monk-slave-1 purged
+✔ local/mariadb-ha/monk-slave-2 purged
+✔ local/mariadb-ha/stack purged
 
 ```
