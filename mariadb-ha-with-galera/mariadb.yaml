@@ -2,6 +2,52 @@ namespace: mariadb-ha
 
 mariadb-bootstrap:
   defines: runnable
+  services:
+    mariadb-3306:
+      container: mariadb
+      port: 3306
+      protocol: tcp
+      host-port: 3306
+    mariadb-4444:
+      container: mariadb
+      port: 4444
+      protocol: tcp
+      host-port: 4444
+    mariadb-4567:
+      container: mariadb
+      port: 4567
+      protocol: tcp
+      host-port: 4567
+    mariadb-4568:
+      container: mariadb
+      port: 4568
+      protocol: tcp
+      host-port: 4568 
+  connections:
+    mariadb-2-3306:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-3306
+    mariadb-2-4444:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4444
+    mariadb-2-4567:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4567
+    mariadb-2-4568:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4568      
+    mariadb-3-3306:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-3306
+    mariadb-3-4444:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4444
+    mariadb-3-4567:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4567
+    mariadb-3-4568:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4568                                        
   containers:
     defines: containers
     mariadb:
@@ -84,6 +130,64 @@ mariadb-bootstrap:
 
 mariadb-slave-common:
   defines: runnable
+  services:
+    mariadb-3306:
+      container: mariadb
+      port: 3306
+      protocol: tcp
+      host-port: 3306
+    mariadb-4444:
+      container: mariadb
+      port: 4444
+      protocol: tcp
+      host-port: 4444
+    mariadb-4567:
+      container: mariadb
+      port: 4567
+      protocol: tcp
+      host-port: 4567
+    mariadb-4568:
+      container: mariadb
+      port: 4568
+      protocol: tcp
+      host-port: 4568 
+  connections:
+    mariadb-1-3306:
+      runnable: mariadb-ha/mariadb-bootstrap
+      service: mariadb-3306
+    mariadb-1-4444:
+      runnable: mariadb-ha/mariadb-bootstrap
+      service: mariadb-4444
+    mariadb-1-4567:
+      runnable: mariadb-ha/mariadb-bootstrap
+      service: mariadb-4567
+    mariadb-1-4568:
+      runnable: mariadb-ha/mariadb-bootstrap
+      service: mariadb-4568      
+    mariadb-2-3306:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-3306
+    mariadb-2-4444:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4444
+    mariadb-2-4567:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4567 
+    mariadb-2-4568:
+      runnable: mariadb-ha/monk-slave-1
+      service: mariadb-4568        
+    mariadb-3-3306:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-3306
+    mariadb-3-4444:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4444
+    mariadb-3-4567:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4567
+    mariadb-3-4568:
+      runnable: mariadb-ha/monk-slave-2
+      service: mariadb-4568       
   depends:
     wait-for:
       runnables:
@@ -146,7 +250,7 @@ mariadb-slave-common:
     master-internal-host-name:
       env: MASTER_INTERNAL_HOST_NAME
       type: string
-      value: <- get-hostname("mariadb-ha/mariadb-bootstrap", "mariadb") split(".dns.podman") join("") concat-all
+      value: <- connection-hostname("mariadb-1-3306")
     master-node-ip-address:
       env: MASTER_NODE_IP_ADRESS
       value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")

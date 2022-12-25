@@ -2,6 +2,12 @@ namespace: mariadb
 
 mariadb:
   defines: runnable
+  services:
+    mariadb:
+      container: mariadb
+      port: 3306
+      protocol: tcp
+      host-port: 3306  
   metadata:
     defines: metadata
     name: mariadb
