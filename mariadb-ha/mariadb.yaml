@@ -1,0 +1,254 @@
+namespace: monk-mariadb-master-slave
+
+mariadb-common:
+  connections:
+    master:
+      runnable: monk-mariadb-master-slave/master
+      service: mariadb-svc
+    slave1:
+      runnable: monk-mariadb-master-slave/slave1
+      service: mariadb-svc
+    slave2:
+      runnable: monk-mariadb-master-slave/slave2
+      service: mariadb-svc
+
+  variables:
+    image_tag:
+      type: string
+      value: <- $mariadb_image_tag
+    database_name:
+      type: string
+      env: MYSQL_DATABASE
+      value: <- $mariadb_database_name
+    database_user:
+      env: MYSQL_USER
+      type: string
+      value: <- $mariadb_database_user
+    database_password:
+      env: MYSQL_PASSWORD
+      type: string
+      value: <- $mariadb_database_password
+    database_root_password:
+      env: MYSQL_ROOT_PASSWORD
+      value: <- $mariadb_database_root_password
+      type: string
+    database_master_host:
+      env: MYSQL_MASTER_HOST
+      type: string
+      value: <- connection-hostname("master") split(".dns.podman") join("")
+    database_slave1_host:
+      env: MYSQL_SLAVE1_HOST
+      type: string
+      value: <- connection-hostname("slave1") split(".dns.podman") join("")
+    mariadb-slave2-host:
+      env: MYSQL_SLAVE2_HOST
+      type: string
+      value: <- connection-hostname("slave2") split(".dns.podman") join("")
+    volume_data:
+      type: string
+      value: <- `${monk-volume-path}`
+
+  services:
+    mariadb-svc:
+      port: 3306
+      container: mariadb
+      protocol: tcp
+
+master:
+  defines: runnable
+  inherits: monk-mariadb-master-slave/mariadb-common
+
+  variables:
+    mariadb_port:
+      type: int
+      value: <- $mariadb_master_database_port
+
+  containers:
+    mariadb:
+      paths:
+        - <- `${volume_data}/mariadb-master:/var/lib/mysql`
+      ports:
+        - <- `${mariadb_port}:3306`
+      image-tag: <- `${image_tag}`
+      image: mariadb
+
+  files:
+    my-file:
+      raw: true
+      contents: |
+        [mysqld]
+        server-id=1
+        log-bin=mysql-bin
+        log-slave-updates=1
+        datadir=/var/lib/mysql/
+        innodb_flush_log_at_trx_commit = 2
+        innodb_flush_method = O_DIRECT
+        skip-host-cache
+        skip-name-resolve
+        default-authentication-plugin=mysql_native_password
+      container: mariadb
+      path: /etc/mysql/conf.d/master.cnf
+      mode: 644
+
+slave1:
+  defines: runnable
+  inherits: monk-mariadb-master-slave/mariadb-common
+
+  variables:
+    mariadb_port:
+      type: int
+      value: <- $mariadb_slave1_database_port
+    slave1-volume_data:
+        type: string
+        value: <- $mariadb_database_data_volume_path
+
+  containers:
+    mariadb:
+      ports:
+        - <- `0.0.0.0:${mariadb_slave1_database_port}:3306`
+      image-tag: <- `${image_tag}`
+      paths:
+        - <- `${slave1-volume_data}/mariadb-slave1:/var/lib/mysql`
+      image: mariadb
+
+  files:
+    my-file:
+      raw: true
+      contents: |
+        [mysqld]
+        server-id=2
+        log-bin=mysql-bin
+        log-slave-updates=1
+        auto_increment_increment=2
+        auto_increment_offset=2
+        datadir=/var/lib/mysql
+        read-only=1
+        slave-skip-errors = 1062
+        skip-host-cache
+        skip-name-resolve
+        default-authentication-plugin=mysql_native_password
+      container: mariadb
+      path: /etc/mysql/conf.d/slave1.cnf
+      mode: 644
+
+slave2:
+  defines: runnable
+  inherits: monk-mariadb-master-slave/mariadb-common
+
+  variables:
+    mariadb_port:
+      type: int
+      value: <- $mariadb_slave2_database_port
+    slave2-volume_data:
+        type: string
+        value: <- $mariadb_database_data_volume_path
+
+  containers:
+    mariadb:
+      ports:
+        - <- `0.0.0.0:${mariadb_slave2_database_port}:3306`
+      image-tag: <- `${image_tag}`
+      paths:
+        - <- `${slave2-volume_data}/mariadb-slave2:/var/lib/mysql`
+      image: mariadb
+
+  files:
+    my-file:
+      raw: true
+      contents: |
+        [mysqld]
+        server-id=3
+        log-bin=mysql-bin
+        log-slave-updates=1
+        auto_increment_increment=2
+        auto_increment_offset=2
+        datadir=/var/lib/mysql
+        read-only=1
+        slave-skip-errors = 1062
+        skip-host-cache
+        skip-name-resolve
+        default-authentication-plugin=mysql_native_password
+      container: mariadb
+      path: /etc/mysql/conf.d/slave2.cnf
+      mode: 644
+
+configure:
+  defines: runnable
+  inherits: monk-mariadb-master-slave/mariadb-common
+
+  variables:
+    mariadb_master_password:
+      env: MYSQL_MASTER_PASSWORD
+      type: string
+      value: <- $mariadb_database_root_password
+    mariadb_repl_user:
+      env: MYSQL_REPLICATION_USER
+      type: string
+      value: <- $mariadb_database_repl_user
+    mariadb_repl_password:
+      env: MYSQL_REPLICATION_PASSWORD
+      value: <- $mariadb_database_repl_password
+      type: string
+    database_monitor_password:
+      env: MYSQL_MONITOR_PASSWORD
+      value: <- $mariadb_database_monitor_password
+      type: string
+    database_monitor_user:
+      env: MYSQL_MONITOR_USER
+      value: <- $mariadb_database_monitor_user
+      type: string
+
+  containers:
+    mariadb:
+      bash: /tmp/init.sh
+      image-tag: <- `${image_tag}`
+      image: mariadb
+
+  files:
+    my-file:
+      raw: true
+      contents: |
+        #!/bin/sh
+        sleep 20
+        while ! mysqladmin ping -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST --silent; do
+          sleep 1
+        done
+
+        mysql -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD  -e "RESET MASTER;"
+        mysql -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD  -e "FLUSH TABLES WITH READ LOCK;"
+
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "UNLOCK TABLES;"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_ROOT_PASSWORD';"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "CREATE USER '$MYSQL_MONITOR_USER'@'%' IDENTIFIED BY '$MYSQL_MONITOR_PASSWORD';"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "FLUSH PRIVILEGES;"
+
+        mysqldump -uroot -h $MYSQL_MASTER_HOST  -p$MYSQL_ROOT_PASSWORD --all-databases --source-data --single-transaction --flush-logs --events --result-file=/tmp/master_dump.sql
+
+        mysql -h $MYSQL_SLAVE1_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP SLAVE;";
+        mysql -h $MYSQL_SLAVE1_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/master_dump.sql
+
+        mysql -h $MYSQL_SLAVE2_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP SLAVE;";
+        mysql -h $MYSQL_SLAVE2_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/master_dump.sql
+
+        log_file=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "SHOW MASTER STATUS\G" | grep File: | awk '{print $2}'`
+        pos=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "SHOW MASTER STATUS\G" | grep Position: | awk '{print $2}'`
+
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "RESET SLAVE";
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "CHANGE MASTER TO MASTER_HOST='$MYSQL_MASTER_HOST', MASTER_USER='root', MASTER_PASSWORD='$MYSQL_ROOT_PASSWORD', MASTER_LOG_FILE='${log_file}', MASTER_LOG_POS=${pos};"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "start slave"
+
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "RESET SLAVE";
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "CHANGE MASTER TO MASTER_HOST='$MYSQL_MASTER_HOST', MASTER_USER='root', MASTER_PASSWORD='$MYSQL_ROOT_PASSWORD', MASTER_LOG_FILE='${log_file}', MASTER_LOG_POS=${pos};"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "start slave"
+
+      container: mariadb
+      path: /tmp/init.sh
+      mode: 755
+
+  depends:
+    wait-for:
+        runnables:
+            - monk-mariadb-master-slave/master
+            - monk-mariadb-master-slave/slave1
+            - monk-mariadb-master-slave/slave2
+        timeout: 60
