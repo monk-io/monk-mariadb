@@ -18,10 +18,10 @@ stack:
   variables:
     mariadb-image-tag: latest
     mariadb-root-user: root
-    mariadb-root-password: 4wfoA7auxY
-    mariadb-database-name: mariadb
-    mariadb-user-name: mariadbuser
-    mariadb-user-password: Cz9mGzmRtW
+    mariadb-root-password: thisismyrootpassword
+    mariadb-database-name: mydatabasename
+    mariadb-user-name: myuser
+    mariadb-user-password: thisismyuserpassword
     mariadb-cluster-name: my_galera 
     mariadb-mariabackup-user: my_mariabackup_user 
     mariadb-mariabackup-password: cNQAW4GT

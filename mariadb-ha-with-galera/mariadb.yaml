@@ -24,6 +24,9 @@ mariadb-bootstrap:
       protocol: tcp
       host-port: 4568 
   connections:
+    mariadb-1-3306:
+      runnable: mariadb-ha/mariadb-bootstrap
+      service: mariadb-3306  
     mariadb-2-3306:
       runnable: mariadb-ha/monk-slave-1
       service: mariadb-3306
@@ -41,7 +44,7 @@ mariadb-bootstrap:
       service: mariadb-3306
     mariadb-3-4444:
       runnable: mariadb-ha/monk-slave-2
-      service: mariadb-4444
+      service: mariadb-4444∏
     mariadb-3-4567:
       runnable: mariadb-ha/monk-slave-2
       service: mariadb-4567
@@ -51,81 +54,116 @@ mariadb-bootstrap:
   containers:
     defines: containers
     mariadb:
-      image: bitnami/mariadb-galera
-      image-tag: <- `${mariadb-image}`
+      image: mariadb:10.10
+      # image-tag: <- `${mariadb-image}`
+      entrypoint: "mysqld --init-file='/docker-entrypoint-initdb.d/initfile.sql'"
       ports:
         - 3306:3306
         - 4444:4444
         - 4567:4567
         - 4568:4568
-      environment:
-        - MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes
-        - MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://
-        - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=yes
-        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
-      paths:
-        - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
+      # environment:
+      #   - MARIADB_GALERA_CLUSTER_BOOTSTRAP=yes
+      #   - MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://
+      #   - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=yes
+      #   - <- `MARIADB_EXTRA_FLAGS=--wsr,ep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
+      # paths:
+      #   - <- `${monk-volume-path}/mariadb-master:/bitnami/mariadb`
   files:
-    custom-conf:
+    # custom-conf:
+    #   container: mariadb
+    #   mode: 0644
+    #   path: /opt/bitnami/mariadb/conf/my_custom.cnf
+    #   contents: <<< files/custom.cnf
+    server-def:
+      contents: |
+        [galera]
+        wsrep_on                 = ON
+        wsrep_cluster_name       = "MariaDB Galera Cluster"
+        wsrep_provider           = /usr/lib/galera/libgalera_smm.so
+        wsrep_cluster_address    = "gcomm://"
+        binlog_format            = row
+        default_storage_engine   = InnoDB
+        innodb_autoinc_lock_mode = 2
+        bind-address = 0.0.0.0
+        wsrep_node_address= {{ v "master-hostname" }}
+        default-authentication-plugin=mysql_native_password
+      mode: 644
+      path: /etc/mysql/mariadb.conf.d/galera.cnf
       container: mariadb
-      mode: 0644
-      path: /opt/bitnami/mariadb/conf/my_custom.cnf
-      contents: <<< files/custom.cnf
+    init-file:
+      contents: |
+        CREATE USER IF NOT EXISTS root@localhost IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@localhost = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@localhost WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS root@'%' IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@'%' = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@'%' WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS myuser@'%' IDENTIFIED BY 'thisismyuserpassword';
+        SET PASSWORD FOR myuser@'%' = PASSWORD('thisismyuserpassword');
+        CREATE DATABASE IF NOT EXISTS mydatabasename;
+        GRANT ALL ON mydatabasename.* TO myuser@'%';
+      mode: 644
+      path: /docker-entrypoint-initdb.d/initfile.sql
+      container: mariadb              
   variables:
+    master-hostname:
+      value: <- connection-hostname("mariadb-1-3306")
+      type: string  
     node-id:
       value: 1
       type: int  
     mariadb-image:
       value: <- $mariadb-image-tag
       type: string
-    mysql-root-user:
-      env: MARIADB_ROOT_USER
-      value: <- $mariadb-root-user
-      type: string
+    # mysql-root-user:
+    #   env: MARIADB_ROOT_USER
+    #   value: <- $mariadb-root-user
+    #   type: string
     mysql-root-password:
-      env: MARIADB_ROOT_PASSWORD
+      env: MYSQL_ROOT_PASSWORD
       value: <- $mariadb-root-password
       type: string
     mysql-database:
-      env: MARIADB_DATABASE
+      env: MYSQL_DATABASE
       value: <- $mariadb-database-name
       type: string
     mysql-user:
-      env: MARIADB_USER
+      env: MYSQL_USER
       value: <- $mariadb-user-name
       type: string
     mysql-password:
-      env: MARIADB_PASSWORD
+      env: MYSQL_PASSWORD
       value: <- $mariadb-user-password
       type: string
-    galera-cluster-name:
-      env: MARIADB_GALERA_CLUSTER_NAME
-      value: <- $mariadb-cluster-name
-      type: string
-    galera-mariabackup-user:
-      env: MARIADB_GALERA_MARIABACKUP_USER
-      value: <- $mariadb-mariabackup-user
-      type: string
-    galera-mariabackup-pasword:
-      env: MARIADB_GALERA_MARIABACKUP_PASSWORD
-      value: <- $mariadb-mariabackup-password
-      type: string
-    galera-replication-user:
-      env: MARIADB_REPLICATION_USER
-      value: <- $mariadb-replication-user
-      type: string
-    galera-replication-password:
-      env: MARIADB_REPLICATION_PASSWORD
-      value: <- $mariadb-replication-password
-      type: string
-    node-public-ip-address:
-      env: NODE_PUBLIC_IP_ADRESS
-      value: <- ip-address-public
-      type: string
-    master-node-ip-address:
-      env: MASTER_NODE_IP_ADRESS
-      value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
-      type: string      
+    # galera-cluster-name:
+    #   env: MARIADB_GALERA_CLUSTER_NAME
+    #   value: <- $mariadb-cluster-name
+    #   type: string
+    # galera-mariabackup-user:
+    #   env: MARIADB_GALERA_MARIABACKUP_USER
+    #   value: <- $mariadb-mariabackup-user
+    #   type: string
+    # galera-mariabackup-pasword:
+    #   env: MARIADB_GALERA_MARIABACKUP_PASSWORD
+    #   value: <- $mariadb-mariabackup-password
+    #   type: string
+    # galera-replication-user:
+    #   env: MARIADB_REPLICATION_USER
+    #   value: <- $mariadb-replication-user
+    #   type: string
+    # galera-replication-password:
+    #   env: MARIADB_REPLICATION_PASSWORD
+    #   value: <- $mariadb-replication-password
+    #   type: string
+    # node-public-ip-address:
+    #   env: NODE_PUBLIC_IP_ADRESS
+    #   value: <- ip-address-public
+    #   type: string
+    # master-node-ip-address:
+    #   env: MASTER_NODE_IP_ADRESS
+    #   value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
+    #   type: string      
       
 
 mariadb-slave-common:
@@ -192,73 +230,86 @@ mariadb-slave-common:
     wait-for:
       runnables:
         - mariadb-ha/mariadb-bootstrap
-  files:
-    custom-conf:
-      container: mariadb
-      mode: 0644
-      path: /opt/bitnami/mariadb/conf/my_custom.cnf
-      contents: <<< files/custom.cnf      
+  # files:
+  #   custom-conf:
+  #     container: mariadb
+  #     mode: 0644
+  #     path: /opt/bitnami/mariadb/conf/my_custom.cnf
+  #     contents: <<< files/custom.cnf      
   containers:
     defines: containers
     mariadb:
-      image: bitnami/mariadb-galera
-      image-tag: <- `${mariadb-image}`
+      image: mariadb:10.10
+      entrypoint: "mysqld --init-file='/docker-entrypoint-initdb.d/initfile.sql'"
+      # image-tag: <- `${mariadb-image}`
       ports:
         - 3306:3306
         - 4444:4444
         - 4567:4567
         - 4568:4568
-      environment:
-        - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567`
-        - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
-        - MARIADB_GALERA_CLUSTER_BOOTSTRAP=no
-        - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=no        
-      paths:
-        - <- `${monk-volume-path}/mariadb-slave-${node-id}:/bitnami/mariadb`
+      # environment:
+      #   - <- `MARIADB_GALERA_CLUSTER_ADDRESS=gcomm://${master-internal-host-name}:4567`
+      #   - <- `MARIADB_EXTRA_FLAGS=--wsrep_provider_options=ist.recv_addr=${node-public-ip-address};ist.recv_bind=0.0.0.0:4568 --wsrep_node_incoming_address=${node-public-ip-address} --wsrep_sst_receive_address=${node-public-ip-address}`
+      #   - MARIADB_GALERA_CLUSTER_BOOTSTRAP=no
+      #   - MARIADB_GALERA_FORCE_SAFETOBOOTSTRAP=no        
+      # paths:
+      #   - <- `${monk-volume-path}/mariadb-slave-${node-id}:/bitnami/mariadb`
   variables:
     mariadb-image:
       value: <- $mariadb-image-tag
       type: string
-    mysql-root-user:
-      env: MARIADB_ROOT_USER
-      value: <- $mariadb-root-user
-      type: string
+    # mysql-root-user:
+    #   env: MARIADB_ROOT_USER
+    #   value: <- $mariadb-root-user
+    #   type: string
     mysql-root-password:
-      env: MARIADB_ROOT_PASSWORD
+      env: MYSQL_ROOT_PASSWORD
       value: <- $mariadb-root-password
       type: string
-    galera-cluster-name:
-      env: MARIADB_GALERA_CLUSTER_NAME
-      value: <- $mariadb-cluster-name
+    mysql-database:
+      env: MYSQL_DATABASE
+      value: <- $mariadb-database-name
       type: string
-    galera-mariabackup-user:
-      env: MARIADB_GALERA_MARIABACKUP_USER
-      value: <- $mariadb-mariabackup-user
+    mysql-user:
+      env: MYSQL_USER
+      value: <- $mariadb-user-name
       type: string
-    galera-mariabackup-pasword:
-      env: MARIADB_GALERA_MARIABACKUP_PASSWORD
-      value: <- $mariadb-mariabackup-password
-      type: string
-    galera-replication-user:
-      env: MARIADB_REPLICATION_USER
-      value: <- $mariadb-replication-user
-      type: string
-    galera-replication-password:
-      env: MARIADB_REPLICATION_PASSWORD
-      value: <- $mariadb-replication-password
-      type: string
-    master-internal-host-name:
-      env: MASTER_INTERNAL_HOST_NAME
-      type: string
-      value: <- connection-hostname("mariadb-1-3306")
-    master-node-ip-address:
-      env: MASTER_NODE_IP_ADRESS
-      value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
-      type: string
-    node-public-ip-address:
-      env: NODE_PUBLIC_IP_ADRESS
-      value: <- ip-address-public
+    mysql-password:
+      env: MYSQL_PASSWORD
+      value: <- $mariadb-user-password
       type: string      
+    # galera-cluster-name:
+    #   env: MARIADB_GALERA_CLUSTER_NAME
+    #   value: <- $mariadb-cluster-name
+    #   type: string
+    # galera-mariabackup-user:
+    #   env: MARIADB_GALERA_MARIABACKUP_USER
+    #   value: <- $mariadb-mariabackup-user
+    #   type: string
+    # galera-mariabackup-pasword:
+    #   env: MARIADB_GALERA_MARIABACKUP_PASSWORD
+    #   value: <- $mariadb-mariabackup-password
+    #   type: string
+    # galera-replication-user:
+    #   env: MARIADB_REPLICATION_USER
+    #   value: <- $mariadb-replication-user
+    #   type: string
+    # galera-replication-password:
+    #   env: MARIADB_REPLICATION_PASSWORD
+    #   value: <- $mariadb-replication-password
+    #   type: string
+    # master-internal-host-name:
+    #   env: MASTER_INTERNAL_HOST_NAME
+    #   type: string
+    #   value: <- connection-hostname("mariadb-1-3306")
+    # master-node-ip-address:
+    #   env: MASTER_NODE_IP_ADRESS
+    #   value: <- peer-ip-address("mariadb-ha/mariadb-bootstrap")
+    #   type: string
+    # node-public-ip-address:
+    #   env: NODE_PUBLIC_IP_ADRESS
+    #   value: <- ip-address-public
+    #   type: string      
       
 
 monk-slave-1:
@@ -266,12 +317,96 @@ monk-slave-1:
   inherits: ./mariadb-slave-common
   variables:
     node-id: 2
+    master-hostname:
+      value: <- connection-hostname("mariadb-1-3306")
+      type: string    
+    slave1-hostname:
+      value: <- connection-hostname("mariadb-2-3306")
+      type: string     
+    slave2-hostname:
+      value: <- connection-hostname("mariadb-3-3306")
+      type: string        
+  files:
+    server-def:
+      contents: |
+        [galera]
+        wsrep_on                 = ON
+        wsrep_cluster_name       = "MariaDB Galera Cluster"
+        wsrep_provider           = /usr/lib/galera/libgalera_smm.so
+        wsrep_cluster_address    = "gcomm://{{ v "master-hostname" }}:3306,{{ v "slave1-hostname" }}:3306,{{ v "slave2-hostname" }}:3306"
+        binlog_format            = row
+        default_storage_engine   = InnoDB
+        innodb_autoinc_lock_mode = 2
+        bind-address = 0.0.0.0
+        wsrep_node_address= "{{ v "slave1-hostname" }}"
+        default-authentication-plugin=mysql_native_password
+      mode: 644
+      path: /etc/mysql/mariadb.conf.d/galera.cnf
+      container: mariadb
+    init-file:
+      contents: |
+        CREATE USER IF NOT EXISTS root@localhost IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@localhost = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@localhost WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS root@'%' IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@'%' = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@'%' WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS myuser@'%' IDENTIFIED BY 'thisismyuserpassword';
+        SET PASSWORD FOR myuser@'%' = PASSWORD('thisismyuserpassword');
+        CREATE DATABASE IF NOT EXISTS mydatabasename;
+        GRANT ALL ON mydatabasename.* TO myuser@'%';
+      mode: 644
+      path: /docker-entrypoint-initdb.d/initfile.sql
+      container: mariadb            
+
+
 
 monk-slave-2:
   defines: runnable
   inherits: ./mariadb-slave-common
   variables:
     node-id: 3
+    master-hostname:
+      value: <- connection-hostname("mariadb-1-3306")
+      type: string    
+    slave1-hostname:
+      value: <- connection-hostname("mariadb-2-3306")
+      type: string     
+    slave2-hostname:
+      value: <- connection-hostname("mariadb-3-3306")
+      type: string        
+  files:
+    server-def:
+      contents: |
+        [galera]
+        wsrep_on                 = ON
+        wsrep_cluster_name       = "MariaDB Galera Cluster"
+        wsrep_provider           = /usr/lib/galera/libgalera_smm.so
+        wsrep_cluster_address    = "gcomm://{{ v "master-hostname" }}:3306,{{ v "slave1-hostname" }}:3306,{{ v "slave2-hostname" }}:3306"
+        binlog_format            = row
+        default_storage_engine   = InnoDB
+        innodb_autoinc_lock_mode = 2
+        bind-address = 0.0.0.0
+        wsrep_node_address= "{{ v "slave2-hostname" }}"
+        default-authentication-plugin=mysql_native_password
+      mode: 644
+      path: /etc/mysql/mariadb.conf.d/galera.cnf
+      container: mariadb      
+    init-file:
+      contents: |
+        CREATE USER IF NOT EXISTS root@localhost IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@localhost = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@localhost WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS root@'%' IDENTIFIED BY 'thisismyrootpassword';
+        SET PASSWORD FOR root@'%' = PASSWORD('thisismyrootpassword');
+        GRANT ALL ON *.* TO root@'%' WITH GRANT OPTION;
+        CREATE USER IF NOT EXISTS myuser@'%' IDENTIFIED BY 'thisismyuserpassword';
+        SET PASSWORD FOR myuser@'%' = PASSWORD('thisismyuserpassword');
+        CREATE DATABASE IF NOT EXISTS mydatabasename;
+        GRANT ALL ON mydatabasename.* TO myuser@'%';
+      mode: 644
+      path: /docker-entrypoint-initdb.d/initfile.sql
+      container: mariadb       
 
 
   
