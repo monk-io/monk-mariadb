@@ -2,10 +2,9 @@
 
 This repository contains Monk.io template to deploy mariadb system either locally or on cloud of your choice (AWS, GCP, Azure, Digital Ocean).
 
-
 ## Start
 
-Set up Monk - https://docs.monk.io/docs/monk-in-10/
+Set up Monk - [https://docs.monk.io/docs/monk-in-10/](https://docs.monk.io/docs/monk-in-10/)
 
 Start `monkd` and login.
 
@@ -15,7 +14,8 @@ monk login --email=<email> --password=<password>
 
 ## Clone Monk mariadb repository
 
-In order to load templates and change configuration simply use below commands: 
+In order to load templates and change configuration simply use below commands:
+
 ```bash
 git clone https://github.com/monk-io/monk-mariadb
 
@@ -38,24 +38,20 @@ The current variables can be found in `mariadb/variables` section
     mariadb-user-password: "Cz9mGzmRtW"
 ```
 
+## Template variables
 
-##  Template variables
-
-| Variable | Description | Type | Example |
-|----------|-------------|------|---------|
-| **mariadb-image-tag** | Mariab image version. | string | latest |
-| **mariadb-root-password** | Mariab image version. | string | "4wfoA7auxY" |
-| **mariadb-database-name** | Mariab image version. | string | latest |
-| **mariadb-user-name** | Mariab database user name. | string | mariadbuser |
+| Variable                  | Description                    | Type   | Example      |
+| ------------------------- | ------------------------------ | ------ | ------------ |
+| **mariadb-image-tag**     | Mariab image version.          | string | latest       |
+| **mariadb-root-password** | Mariab image version.          | string | "4wfoA7auxY" |
+| **mariadb-database-name** | Mariab image version.          | string | latest       |
+| **mariadb-user-name**     | Mariab database user name.     | string | mariadbuser  |
 | **mariadb-user-password** | Mariab database user password. | string | "Cz9mGzmRtW" |
-
-
-
 
 ## Local Deployment
 
-First clone the repository simply run below command after launching `monkd`:
-:
+| First clone the repository simply run below command after launching `monkd`: |
+| :--------------------------------------------------------------------------: |
 
 ```bash
 ➜  monk load MANIFEST
@@ -83,8 +79,7 @@ group     mariadb/stack    local       -        -
 
 ```
 
-This will start the entire mariadb/stack 
-
+This will start the entire mariadb/stack
 
 ## Cloud Deployment
 
@@ -127,6 +122,7 @@ Your cluster has been created successfully.
 ```
 
 Once cluster is ready execute the same command as for local and select your cluster (the option will appear automatically).
+
 ```bash
 ➜  monk load MANIFEST
 
