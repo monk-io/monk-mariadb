@@ -1,3 +1,4 @@
+---
 namespace: monk-mariadb-master-slave
 
 stack:
@@ -14,35 +15,35 @@ stack:
     tags: self hosted, database
     website: https://mariadb.org/
     source: https://github.com/MariaDB/
-    publisher: "monk.io"
+    publisher: monk.io
   variables:
     mariadb_database_repl_user:
-      value: "repl"
+      value: repl
       type: string
     mariadb_database_repl_password:
-      value: "RhgDPXPEnAgJ5q5g"
+      value: RhgDPXPEnAgJ5q5g
       type: string
     mariadb_database_monitor_user:
-      value: "monitor"
+      value: monitor
       type: string
     mariadb_database_monitor_password:
-      value: "RhgDPXPEnAgJ5q5g"
+      value: RhgDPXPEnAgJ5q5g
       type: string
     mariadb_database_user:
-      value: "db_user"
+      value: db_user
       type: string
     mariadb_database_root_password:
-      value: "RhgDPXPEnAgJ5q5g"
+      value: RhgDPXPEnAgJ5q5g
       type: string
     mariadb_database_name:
-      value: "monk"
+      value: monk
       type: string
     mariadb_master_database_port: 3306
     mariadb_slave1_database_port: 3307
     mariadb_slave2_database_port: 3308
-    mariadb_database_password: "RhgDPXPEnAgxxXYZ"
+    mariadb_database_password: RhgDPXPEnAgxxXYZ
     mariadb_image_tag:
-      value: "10.10"
+      value: '10.10'
       type: string
     mariadb_database_data_volume_path:
       value: <- `${moncc-volume-path}/mariadb`

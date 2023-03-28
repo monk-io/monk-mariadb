@@ -1,3 +1,4 @@
+---
 namespace: mariadb
 
 mariadb:
@@ -7,18 +8,16 @@ mariadb:
       container: mariadb
       port: 3306
       protocol: tcp
-      host-port: 3306  
+      host-port: 3306
   metadata:
-    defines: metadata
     name: mariadb
-    description: 
+    description:
     tags: self hosted, database
-    website: 
-    source: 
-    publisher: "monk.io"
-    icon:  
+    website:
+    source:
+    publisher: monk.io
+    icon:
   containers:
-    defines: containers
     mariadb:
       image: mariadb
       image-tag: <- `${mariadb-image}`
@@ -32,7 +31,7 @@ mariadb:
       value: <- $mariadb-image-tag
       type: string
     mysql-root-password:
-      env: MYSQL_ROOT_PASSWORD    
+      env: MYSQL_ROOT_PASSWORD
       value: <- $mariadb-root-password
       type: string
     mysql-database:
