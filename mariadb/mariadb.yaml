@@ -1,22 +1,27 @@
+---
 namespace: mariadb
 
 mariadb:
   defines: runnable
+  metadata:
+    defines: metadata
+    name: mariadb
+    description: |
+      MariaDB is a popular open-source relational database management system (RDBMS) that is compatible with MySQL. 
+      It was initially created as a fork of MySQL in 2009 by the original developers of }/mariadb-conf:/etc/mysql/conf.d
+      MariaDB offers many additional features and enhancements over MySQL, including improved performance, scalability, and security. 
+      It also includes several advanced features such as support for dynamic columns, parallel replication, and built-in support for geographic information system (GIS) data.
+    tags: self hosted, database
+    website: https://mariadb.org/
+    source: https://github.com/MariaDB/
+    publisher: monk.io
+    icon: https://www.vectorlogo.zone/logos/mariadb/mariadb-ar21.png
   services:
     mariadb:
       container: mariadb
       port: 3306
       protocol: tcp
-      host-port: 3306  
-  metadata:
-    defines: metadata
-    name: mariadb
-    description: 
-    tags: self hosted, database
-    website: 
-    source: 
-    publisher: "monk.io"
-    icon:  
+      host-port: 3306
   containers:
     defines: containers
     mariadb:
@@ -32,7 +37,7 @@ mariadb:
       value: <- $mariadb-image-tag
       type: string
     mysql-root-password:
-      env: MYSQL_ROOT_PASSWORD    
+      env: MYSQL_ROOT_PASSWORD
       value: <- $mariadb-root-password
       type: string
     mysql-database:
