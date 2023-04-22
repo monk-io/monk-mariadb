@@ -4,7 +4,7 @@ This repository contains Monk.io template to deploy mariadb system either locall
 
 ## Start
 
-Set up Monk - [https://docs.monk.io/docs/monk-in-10/](https://docs.monk.io/docs/monk-in-10/)
+[Set up Monk](https://docs.monk.io/docs/monk-in-10/)
 
 Start `monkd` and login.
 
@@ -50,8 +50,7 @@ The current variables can be found in `mariadb/variables` section
 
 ## Local Deployment
 
-| First clone the repository simply run below command after launching `monkd`: |
-| :--------------------------------------------------------------------------: |
+First clone the repository simply run below command after launching `monkd`:
 
 ```bash
 ➜  monk load MANIFEST

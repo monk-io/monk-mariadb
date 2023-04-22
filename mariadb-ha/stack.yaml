@@ -1,21 +1,12 @@
----
-namespace: monk-mariadb-master-slave
+namespace: mariadb-cluster
 
 stack:
   defines: process-group
   runnable-list:
-    - monk-mariadb-master-slave/master
-    - monk-mariadb-master-slave/slave1
-    - monk-mariadb-master-slave/slave2
-    - monk-mariadb-master-slave/configure
-  metadata:
-    defines: metadata
-    name: mariadb
-    description: MariaDB Galera is a multi-primary database cluster solution for synchronous replication and high availability.
-    tags: self hosted, database
-    website: https://mariadb.org/
-    source: https://github.com/MariaDB/
-    publisher: monk.io
+    - mariadb-cluster/master
+    - mariadb-cluster/slave1
+    - mariadb-cluster/slave2
+    - mariadb-cluster/configure
   variables:
     mariadb_database_repl_user:
       value: repl

@@ -1,16 +1,28 @@
----
-namespace: monk-mariadb-master-slave
+namespace: mariadb-cluster
 
-mariadb-common:
+mariadb-base:
+  metadata:
+    defines: metadata
+    name: mariadb
+    description: |
+      MariaDB is a popular open-source relational database management system (RDBMS) that is compatible with MySQL. 
+      It was initially created as a fork of MySQL in 2009 by the original developers of }/mariadb-conf:/etc/mysql/conf.d
+      MariaDB offers many additional features and enhancements over MySQL, including improved performance, scalability, and security. 
+      It also includes several advanced features such as support for dynamic columns, parallel replication, and built-in support for geographic information system (GIS) data.
+    tags: self hosted, database
+    website: https://mariadb.org/
+    source: https://github.com/MariaDB/
+    publisher: monk.io
+    icon: https://www.vectorlogo.zone/logos/mariadb/mariadb-ar21.png
   connections:
     master:
-      runnable: monk-mariadb-master-slave/master
+      runnable: mariadb-cluster/master
       service: mariadb-svc
     slave1:
-      runnable: monk-mariadb-master-slave/slave1
+      runnable: mariadb-cluster/slave1
       service: mariadb-svc
     slave2:
-      runnable: monk-mariadb-master-slave/slave2
+      runnable: mariadb-cluster/slave2
       service: mariadb-svc
   variables:
     image_tag:
@@ -35,15 +47,15 @@ mariadb-common:
     database_master_host:
       env: MYSQL_MASTER_HOST
       type: string
-      value: <- connection-hostname("master") split(".dns.podman") join("")
+      value: <- connection-hostname("master")
     database_slave1_host:
       env: MYSQL_SLAVE1_HOST
       type: string
-      value: <- connection-hostname("slave1") split(".dns.podman") join("")
+      value: <- connection-hostname("slave1")
     mariadb-slave2-host:
       env: MYSQL_SLAVE2_HOST
       type: string
-      value: <- connection-hostname("slave2") split(".dns.podman") join("")
+      value: <- connection-hostname("slave2")
     volume_data:
       type: string
       value: <- `${monk-volume-path}`
@@ -55,7 +67,9 @@ mariadb-common:
 
 master:
   defines: runnable
-  inherits: monk-mariadb-master-slave/mariadb-common
+  inherits: mariadb-cluster/mariadb-base
+  metadata:
+    private: true
   variables:
     mariadb_port:
       type: int
@@ -88,7 +102,9 @@ master:
 
 slave1:
   defines: runnable
-  inherits: monk-mariadb-master-slave/mariadb-common
+  inherits: mariadb-cluster/mariadb-base
+  metadata:
+    private: true
   variables:
     mariadb_port:
       type: int
@@ -126,7 +142,9 @@ slave1:
 
 slave2:
   defines: runnable
-  inherits: monk-mariadb-master-slave/mariadb-common
+  inherits: mariadb-cluster/mariadb-base
+  metadata:
+    private: true
   variables:
     mariadb_port:
       type: int
@@ -164,7 +182,9 @@ slave2:
 
 configure:
   defines: runnable
-  inherits: monk-mariadb-master-slave/mariadb-common
+  inherits: mariadb-cluster/mariadb-base
+  metadata:
+    private: true
   variables:
     mariadb_master_password:
       env: MYSQL_MASTER_PASSWORD
@@ -225,7 +245,7 @@ configure:
   depends:
     wait-for:
       runnables:
-        - monk-mariadb-master-slave/master
-        - monk-mariadb-master-slave/slave1
-        - monk-mariadb-master-slave/slave2
+        - mariadb-cluster/master
+        - mariadb-cluster/slave1
+        - mariadb-cluster/slave2
       timeout: 60
