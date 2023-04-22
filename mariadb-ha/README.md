@@ -2,10 +2,9 @@
 
 This repository contains Monk.io template to deploy mariadb system either locally or on cloud of your choice (AWS, GCP, Azure, Digital Ocean).
 
-
 ## Start
 
-Set up Monk - https://docs.monk.io/docs/monk-in-10/
+[Set up Monk](https://docs.monk.io/docs/monk-in-10/)
 
 Start `monkd` and login.
 
@@ -15,7 +14,8 @@ monk login --email=<email> --password=<password>
 
 ## Clone Monk mariadb repository
 
-In order to load templates and change configuration simply use below commands: 
+In order to load templates and change configuration simply use below commands:
+
 ```bash
 git clone https://github.com/monk-io/monk-mariadb
 
@@ -106,6 +106,7 @@ Your cluster has been created successfully.
 ```
 
 Once cluster is ready execute the same command as for local and select your cluster (the option will appear automatically).
+
 ```bash
 ➜  monk load MANIFEST
 
