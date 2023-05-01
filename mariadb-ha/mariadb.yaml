@@ -1,18 +1,7 @@
 ---
 namespace: mariadb-cluster
 
-mariadb-base:
-  metadata:
-    private: true
-  containers:
-    mariadb:
-      paths:
-        - <- `${monk-volume-path}/mariadb-master:/var/lib/mysql`
-      image-tag: <- `${image_tag}`
-      image: mariadb    
-
 mariadb-common:
-  inherits: mariadb-cluster/mariadb-base
   metadata:
     private: true
   services:
@@ -29,7 +18,7 @@ mariadb-common:
       service: mariadb-svc
     slave2:
       runnable: mariadb-cluster/slave2
-      service: mariadb-svc    
+      service: mariadb-svc
   variables:
     image_tag:
       type: string
@@ -56,6 +45,12 @@ master:
   inherits: mariadb-cluster/mariadb-common
   metadata:
     private: true
+  containers:
+    mariadb:
+      paths:
+        - <- `${monk-volume-path}/mariadb-master:/var/lib/mysql`
+      image-tag: <- `${image_tag}`
+      image: mariadb
   files:
     my-file:
       raw: true
@@ -79,6 +74,12 @@ slave1:
   inherits: mariadb-cluster/mariadb-common
   metadata:
     private: true
+  containers:
+    mariadb:
+      image-tag: <- `${image_tag}`
+      paths:
+        - <- `${monk-volume-path}/mariadb-slave1:/var/lib/mysql`
+      image: mariadb
   files:
     my-file:
       raw: true
@@ -104,6 +105,12 @@ slave2:
   inherits: mariadb-cluster/mariadb-common
   metadata:
     private: true
+  containers:
+    mariadb:
+      image-tag: <- `${image_tag}`
+      paths:
+        - <- `${monk-volume-path}/mariadb-slave2:/var/lib/mysql`
+      image: mariadb
   files:
     my-file:
       raw: true

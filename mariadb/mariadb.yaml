@@ -1,7 +1,7 @@
 ---
 namespace: mariadb
 
-mariadb-base:
+mariadb-common:
   defines: runnable
   metadata:
     name: mariadb
@@ -51,7 +51,7 @@ mariadb-base:
 
 mariadb:
   defines: runnable
-  inherits: mariadb/mariadb-base
+  inherits: mariadb/mariadb-common
   variables:
     mariadb-image-tag: latest
     mariadb-root-password: 4wfoA7auxY
