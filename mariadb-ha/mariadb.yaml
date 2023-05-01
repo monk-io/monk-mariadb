@@ -1,29 +1,35 @@
+---
 namespace: mariadb-cluster
 
 mariadb-base:
   metadata:
-    defines: metadata
-    name: mariadb
-    description: |
-      MariaDB is a popular open-source relational database management system (RDBMS) that is compatible with MySQL. 
-      It was initially created as a fork of MySQL in 2009 by the original developers of }/mariadb-conf:/etc/mysql/conf.d
-      MariaDB offers many additional features and enhancements over MySQL, including improved performance, scalability, and security. 
-      It also includes several advanced features such as support for dynamic columns, parallel replication, and built-in support for geographic information system (GIS) data.
-    tags: self hosted, database
-    website: https://mariadb.org/
-    source: https://github.com/MariaDB/
-    publisher: monk.io
-    icon: https://www.vectorlogo.zone/logos/mariadb/mariadb-ar21.png
-  connections:
-    master:
-      runnable: mariadb-cluster/master
-      service: mariadb-svc
-    slave1:
-      runnable: mariadb-cluster/slave1
-      service: mariadb-svc
-    slave2:
-      runnable: mariadb-cluster/slave2
-      service: mariadb-svc
+    private: true
+  variables:
+    image_tag:
+      type: string
+      value: <- $mariadb_image_tag default("10.10")
+    database_name:
+      type: string
+      env: MYSQL_DATABASE
+      value: <- $mariadb_database_name default("monk")
+    database_user:
+      env: MYSQL_USER
+      type: string
+      value: <- $mariadb_database_user default("db_user")
+    database_password:
+      env: MYSQL_PASSWORD
+      type: string
+      value: <- $mariadb_database_password default("RhgDPXPEnAgxxXYZ")
+    database_root_password:
+      env: MYSQL_ROOT_PASSWORD
+      value: <- $mariadb_database_root_password default("RhgDPXPEnAgJ5q5g")
+      type: string
+
+master:
+  defines: runnable
+  inherits: mariadb-cluster/mariadb-base
+  metadata:
+    private: true
   variables:
     image_tag:
       type: string
@@ -44,42 +50,25 @@ mariadb-base:
       env: MYSQL_ROOT_PASSWORD
       value: <- $mariadb_database_root_password
       type: string
-    database_master_host:
-      env: MYSQL_MASTER_HOST
-      type: string
-      value: <- connection-hostname("master")
-    database_slave1_host:
-      env: MYSQL_SLAVE1_HOST
-      type: string
-      value: <- connection-hostname("slave1")
-    mariadb-slave2-host:
-      env: MYSQL_SLAVE2_HOST
-      type: string
-      value: <- connection-hostname("slave2")
-    volume_data:
-      type: string
-      value: <- `${monk-volume-path}`
   services:
     mariadb-svc:
       port: 3306
       container: mariadb
       protocol: tcp
-
-master:
-  defines: runnable
-  inherits: mariadb-cluster/mariadb-base
-  metadata:
-    private: true
-  variables:
-    mariadb_port:
-      type: int
-      value: <- $mariadb_master_database_port
+  connections:
+    master:
+      runnable: mariadb-cluster/master
+      service: mariadb-svc
+    slave1:
+      runnable: mariadb-cluster/slave1
+      service: mariadb-svc
+    slave2:
+      runnable: mariadb-cluster/slave2
+      service: mariadb-svc
   containers:
     mariadb:
       paths:
-        - <- `${volume_data}/mariadb-master:/var/lib/mysql`
-      ports:
-        - <- `${mariadb_port}:3306`
+        - <- `${monk-volume-path}/mariadb-master:/var/lib/mysql`
       image-tag: <- `${image_tag}`
       image: mariadb
   files:
@@ -106,19 +95,45 @@ slave1:
   metadata:
     private: true
   variables:
-    mariadb_port:
-      type: int
-      value: <- $mariadb_slave1_database_port
-    slave1-volume_data:
+    image_tag:
       type: string
-      value: <- $mariadb_database_data_volume_path
+      value: <- $mariadb_image_tag
+    database_name:
+      type: string
+      env: MYSQL_DATABASE
+      value: <- $mariadb_database_name
+    database_user:
+      env: MYSQL_USER
+      type: string
+      value: <- $mariadb_database_user
+    database_password:
+      env: MYSQL_PASSWORD
+      type: string
+      value: <- $mariadb_database_password
+    database_root_password:
+      env: MYSQL_ROOT_PASSWORD
+      value: <- $mariadb_database_root_password
+      type: string
+  services:
+    mariadb-svc:
+      port: 3306
+      container: mariadb
+      protocol: tcp
+  connections:
+    master:
+      runnable: mariadb-cluster/master
+      service: mariadb-svc
+    slave1:
+      runnable: mariadb-cluster/slave1
+      service: mariadb-svc
+    slave2:
+      runnable: mariadb-cluster/slave2
+      service: mariadb-svc
   containers:
     mariadb:
-      ports:
-        - <- `0.0.0.0:${mariadb_slave1_database_port}:3306`
       image-tag: <- `${image_tag}`
       paths:
-        - <- `${slave1-volume_data}/mariadb-slave1:/var/lib/mysql`
+        - <- `${monk-volume-path}/mariadb-slave1:/var/lib/mysql`
       image: mariadb
   files:
     my-file:
@@ -146,19 +161,45 @@ slave2:
   metadata:
     private: true
   variables:
-    mariadb_port:
-      type: int
-      value: <- $mariadb_slave2_database_port
-    slave2-volume_data:
+    image_tag:
       type: string
-      value: <- $mariadb_database_data_volume_path
+      value: <- $mariadb_image_tag
+    database_name:
+      type: string
+      env: MYSQL_DATABASE
+      value: <- $mariadb_database_name
+    database_user:
+      env: MYSQL_USER
+      type: string
+      value: <- $mariadb_database_user
+    database_password:
+      env: MYSQL_PASSWORD
+      type: string
+      value: <- $mariadb_database_password
+    database_root_password:
+      env: MYSQL_ROOT_PASSWORD
+      value: <- $mariadb_database_root_password
+      type: string
+  services:
+    mariadb-svc:
+      port: 3306
+      container: mariadb
+      protocol: tcp
+  connections:
+    master:
+      runnable: mariadb-cluster/master
+      service: mariadb-svc
+    slave1:
+      runnable: mariadb-cluster/slave1
+      service: mariadb-svc
+    slave2:
+      runnable: mariadb-cluster/slave2
+      service: mariadb-svc
   containers:
     mariadb:
-      ports:
-        - <- `0.0.0.0:${mariadb_slave2_database_port}:3306`
       image-tag: <- `${image_tag}`
       paths:
-        - <- `${slave2-volume_data}/mariadb-slave2:/var/lib/mysql`
+        - <- `${monk-volume-path}/mariadb-slave2:/var/lib/mysql`
       image: mariadb
   files:
     my-file:
@@ -206,6 +247,18 @@ configure:
       env: MYSQL_MONITOR_USER
       value: <- $mariadb_database_monitor_user
       type: string
+    database_master_host:
+      env: MYSQL_MASTER_HOST
+      type: string
+      value: <- connection-hostname("master")
+    database_slave1_host:
+      env: MYSQL_SLAVE1_HOST
+      type: string
+      value: <- connection-hostname("slave1")
+    mariadb-slave2-host:
+      env: MYSQL_SLAVE2_HOST
+      type: string
+      value: <- connection-hostname("slave2")
   containers:
     mariadb:
       bash: /tmp/init.sh
