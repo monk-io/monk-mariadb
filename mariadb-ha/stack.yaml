@@ -1,21 +1,25 @@
 ---
-namespace: monk-mariadb-master-slave
+namespace: mariadb-cluster
 
 stack:
   defines: process-group
-  runnable-list:
-    - monk-mariadb-master-slave/master
-    - monk-mariadb-master-slave/slave1
-    - monk-mariadb-master-slave/slave2
-    - monk-mariadb-master-slave/configure
   metadata:
-    defines: metadata
     name: mariadb
-    description: MariaDB Galera is a multi-primary database cluster solution for synchronous replication and high availability.
-    tags: self hosted, database
+    description: |
+      MariaDB is a popular open-source relational database management system (RDBMS) that is compatible with MySQL. 
+      It was initially created as a fork of MySQL in 2009 by the original developers of }/mariadb-conf:/etc/mysql/conf.d
+      MariaDB offers many additional features and enhancements over MySQL, including improved performance, scalability, and security. 
+      It also includes several advanced features such as support for dynamic columns, parallel replication, and built-in support for geographic information system (GIS) data.
+    tags: self hosted, database, SQL, Replication and clustering, Query optimization, MySQL alternative, Stored procedures and triggers
     website: https://mariadb.org/
     source: https://github.com/MariaDB/
     publisher: monk.io
+    icon: https://www.vectorlogo.zone/logos/mariadb/mariadb-ar21.png
+  runnable-list:
+    - mariadb-cluster/master
+    - mariadb-cluster/slave1
+    - mariadb-cluster/slave2
+    - mariadb-cluster/configure
   variables:
     mariadb_database_repl_user:
       value: repl
@@ -38,14 +42,9 @@ stack:
     mariadb_database_name:
       value: monk
       type: string
-    mariadb_master_database_port: 3306
-    mariadb_slave1_database_port: 3307
-    mariadb_slave2_database_port: 3308
-    mariadb_database_password: RhgDPXPEnAgxxXYZ
+    mariadb_database_password:
+      value: RhgDPXPEnAgxxXYZ
+      type: string
     mariadb_image_tag:
       value: '10.10'
       type: string
-    mariadb_database_data_volume_path:
-      value: <- `${moncc-volume-path}/mariadb`
-      type: string
-    mariadb_database_data_volume_size: 60
