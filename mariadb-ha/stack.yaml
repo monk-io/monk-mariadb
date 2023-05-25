@@ -10,7 +10,7 @@ stack:
       It was initially created as a fork of MySQL in 2009 by the original developers of }/mariadb-conf:/etc/mysql/conf.d
       MariaDB offers many additional features and enhancements over MySQL, including improved performance, scalability, and security. 
       It also includes several advanced features such as support for dynamic columns, parallel replication, and built-in support for geographic information system (GIS) data.
-    tags: self hosted, database, SQL, Replication and clustering, Query optimization, MySQL alternative, Stored procedures and triggers
+    tags: stored procedures and triggers, self hosted, query optimization, mysql alternative, database, replication and clustering
     website: https://mariadb.org/
     source: https://github.com/MariaDB/
     publisher: monk.io
