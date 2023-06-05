@@ -23,7 +23,7 @@ mariadb-common:
   containers:
     mariadb:
       image: mariadb
-      image-tag: <- `${mariadb-image}`
+      image-tag: <- $mariadb-image
       paths:
         - <- `${monk-volume-path}/mariadb:/var/lib/mysql/`
         - <- `${monk-volume-path}/mariadb-conf:/etc/mysql/conf.d`
