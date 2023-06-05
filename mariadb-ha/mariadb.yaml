@@ -58,7 +58,7 @@ master:
     mariadb:
       paths:
         - <- `${monk-volume-path}/mariadb-master:/var/lib/mysql`
-      image-tag: <- `${image_tag}`
+      image-tag: <- $image_tag
       image: mariadb
   files:
     my-file:
@@ -83,7 +83,7 @@ slave1:
   inherits: mariadb-cluster/mariadb-common
   containers:
     mariadb:
-      image-tag: <- `${image_tag}`
+      image-tag: <- $image_tag
       paths:
         - <- `${monk-volume-path}/mariadb-slave1:/var/lib/mysql`
       image: mariadb
@@ -112,7 +112,7 @@ slave2:
   inherits: mariadb-cluster/mariadb-common
   containers:
     mariadb:
-      image-tag: <- `${image_tag}`
+      image-tag: <- $image_tag
       paths:
         - <- `${monk-volume-path}/mariadb-slave2:/var/lib/mysql`
       image: mariadb
@@ -175,7 +175,7 @@ configure:
   containers:
     mariadb:
       bash: /tmp/init.sh
-      image-tag: <- `${image_tag}`
+      image-tag: <- $image_tag
       image: mariadb
   files:
     my-file:
