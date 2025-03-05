@@ -29,7 +29,7 @@ mariadb-common:
         - <- `${monk-volume-path}/mariadb-conf:/etc/mysql/conf.d`
   variables:
     mariadb-image:
-      value: <- $mariadb-image-tag default("10.10")
+      value: <- $mariadb-image-tag default("latest")
       type: string
     mysql-root-password:
       env: MYSQL_ROOT_PASSWORD
