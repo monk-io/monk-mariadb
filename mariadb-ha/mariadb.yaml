@@ -33,7 +33,7 @@ mariadb-common:
   variables:
     image_tag:
       type: string
-      value: <- $mariadb_image_tag default("10.10")
+      value: <- $mariadb_image_tag default("latest")
     database_name:
       type: string
       env: MYSQL_DATABASE

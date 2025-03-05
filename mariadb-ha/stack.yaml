@@ -46,5 +46,5 @@ stack:
       value: RhgDPXPEnAgxxXYZ
       type: string
     mariadb_image_tag:
-      value: '10.10'
+      value: 'latest'
       type: string

@@ -57,7 +57,7 @@ The current variables can be found in `mariadb-ha/variables` section
     mariadb_slave2_database_port: 3308
     mariadb_database_password: "RhgDPXPEnAgxxXYZ"
     mariadb_image_tag:
-      value: "10.10"
+      value: "latest"
       type: string
     mariadb_database_data_volume_path:
       value: <- `${moncc-volume-path}/mariadb`
