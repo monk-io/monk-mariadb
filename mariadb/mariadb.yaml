@@ -32,12 +32,42 @@ mariadb-common:
         nohup sh -c '
           # Wait for MariaDB real server to be ready (6 minutes max)
           attempt=0
+          auth_errors=0
+          
           while [ $attempt -lt 180 ]; do
+            # Try connecting with current password first
             if /usr/bin/mariadb -h localhost -P 3306 -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1;" >/dev/null 2>&1; then
-              echo "$(date) MariaDB ready, updating passwords..."
+              echo "$(date) MariaDB ready, updating user passwords..."
               /tmp/update-passwords.sh
               exit 0
             fi
+            
+            # Try without password (fresh install or password not set yet)
+            if /usr/bin/mariadb -h localhost -P 3306 -u root -e "SELECT 1;" >/dev/null 2>&1; then
+              echo "$(date) MariaDB ready (no password yet), updating user passwords..."
+              /tmp/update-passwords.sh
+              exit 0
+            fi
+            
+            # Check if it'\''s consistently authentication errors (wrong password)
+            auth_result=$(mariadb -h localhost -P 3306 -u root -p"$MYSQL_ROOT_PASSWORD" -e "SELECT 1;" 2>&1)
+            if echo "$auth_result" | grep -q "Access denied"; then
+              auth_errors=$((auth_errors + 1))
+              # If we'\''ve seen auth errors for 60 seconds (30 attempts), likely wrong password
+              if [ $auth_errors -ge 30 ]; then
+                echo "$(date) ERROR: Persistent authentication failure. Wrong root password."
+                echo "$(date) Database password differs from MYSQL_ROOT_PASSWORD environment variable."
+                echo "$(date) Solutions:"
+                echo "$(date)   1. Reset data: docker-compose down -v && docker-compose up"
+                echo "$(date)   2. Update password manually: docker exec -it container mariadb -u root -p"
+                echo "$(date)   3. Fix MYSQL_ROOT_PASSWORD in config"
+                exit 1
+              fi
+            else
+              # Reset counter if we get different errors (connection issues)
+              auth_errors=0
+            fi
+            
             attempt=$((attempt + 1))
             sleep 2
           done
@@ -53,36 +83,27 @@ mariadb-common:
         #!/bin/bash
         set -e
         
-        # Skip if no root password set
-        [ -z "$MYSQL_ROOT_PASSWORD" ] && exit 0
+        # Skip if no user password update needed
+        [ -z "$MYSQL_USER" ] || [ -z "$MYSQL_PASSWORD" ] && exit 0
         
-        # Update root password
+        # Update user password (root password is managed by entrypoint)
         /usr/bin/mariadb -h localhost -P 3306 -u root -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
-          ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-          ALTER USER 'root'@'%' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
-          FLUSH PRIVILEGES;
+          CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
+          CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+          ALTER USER '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
+          ALTER USER '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
         EOSQL
         
-        # Handle user creation/update
-        if [ -n "$MYSQL_USER" ] && [ -n "$MYSQL_PASSWORD" ]; then
+        # Grant database privileges if specified
+        if [ -n "$MYSQL_DATABASE" ]; then
           /usr/bin/mariadb -h localhost -P 3306 -u root -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
-            CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
-            CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-            ALTER USER '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';
-            ALTER USER '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+            GRANT ALL ON \`${MYSQL_DATABASE//_/\\_}\`.* TO '${MYSQL_USER}'@'localhost';
+            GRANT ALL ON \`${MYSQL_DATABASE//_/\\_}\`.* TO '${MYSQL_USER}'@'%';
+            FLUSH PRIVILEGES;
         EOSQL
-          
-          # Grant database privileges if specified
-          if [ -n "$MYSQL_DATABASE" ]; then
-            /usr/bin/mariadb -h localhost -P 3306 -u root -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
-              GRANT ALL ON \`${MYSQL_DATABASE//_/\\_}\`.* TO '${MYSQL_USER}'@'localhost';
-              GRANT ALL ON \`${MYSQL_DATABASE//_/\\_}\`.* TO '${MYSQL_USER}'@'%';
-              FLUSH PRIVILEGES;
-        EOSQL
-          fi
         fi
         
-        echo "$(date) Password update completed!"
+        echo "$(date) User password update completed!"
       container: mariadb
       path: /tmp/update-passwords.sh
       mode: 0755
