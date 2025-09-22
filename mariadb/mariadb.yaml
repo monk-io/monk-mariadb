@@ -1,7 +1,7 @@
 ---
 namespace: mariadb
 
-mariadb-common:
+mariadb:
   defines: runnable
   metadata:
     name: mariadb
@@ -127,7 +127,3 @@ mariadb-common:
       env: MYSQL_PASSWORD
       value: Cz9mGzmRtW
       type: string
-
-mariadb:
-  defines: runnable
-  inherits: mariadb/mariadb-common
