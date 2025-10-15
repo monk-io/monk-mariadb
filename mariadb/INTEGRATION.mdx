@@ -1,0 +1,134 @@
+---
+title: MariaDB
+description: Ready-to-run MariaDB container template you can run directly or inherit to integrate a relational database into your stack.
+primary_category: database
+tags: [mariadb, mysql, database, template, runnable, storage, sql]
+integration_type: template
+hosting_models: [self-hosted]
+website_url: https://mariadb.org/
+docs_url: https://mariadb.com/kb/en/documentation/
+publisher: monk.io
+---
+
+## Overview
+
+This template provides a production‑ready MariaDB instance as a Monk runnable. You can:
+
+- Run it directly to get a managed MariaDB container with sensible defaults
+- Inherit it in your own runnable to seamlessly add a relational database to your stack
+
+It exposes MariaDB on port 3306, persists data to a host volume, and can optionally create an application user and database on first start.
+
+## What this template manages
+
+- MariaDB container (`mariadb` image, configurable tag)
+- Network service on port 3306
+- Persistent volumes for data and configuration
+- Optional initialization of database, user, and passwords
+
+## Quick start (run directly)
+
+1) Load templates
+
+```bash
+monk load MANIFEST
+```
+
+2) Run MariaDB with defaults
+
+```bash
+monk run mariadb/mariadb
+```
+
+3) Customize credentials (recommended via inheritance)
+
+Running directly uses the defaults defined in this template's `variables`. Secrets added with `monk secrets add` will not affect this runnable unless you inherit it and reference those secrets.
+
+- Preferred: inherit and replace variables with `secret("...")` as shown below.
+- Alternative: fork/clone and edit the `variables` in `mariadb/mariadb.yaml`, then `monk load MANIFEST` and run.
+
+Once started, connect to `localhost:3306` (or the runnable hostname inside Monk networks) using the configured credentials.
+
+## Configuration
+
+Key variables you can customize in this template:
+
+```yaml
+variables:
+  mariadb-image: "latest"         # container image tag
+  mysql-root-password: "..."      # ROOT password (env: MYSQL_ROOT_PASSWORD)
+  mysql-database: "mariadb"       # optional app DB to create (env: MYSQL_DATABASE)
+  mysql-user: "mariadbuser"       # optional app user (env: MYSQL_USER)
+  mysql-password: "..."           # optional app user password (env: MYSQL_PASSWORD)
+```
+
+Data is persisted under `${monk-volume-path}/mariadb` on the host. Custom MySQL config snippets are mounted from `${monk-volume-path}/mariadb-conf:/etc/mysql/conf.d`.
+
+## Use by inheritance (recommended for apps)
+
+Inherit the MariaDB runnable in your application and declare a connection. Example:
+
+```yaml
+namespace: myapp
+
+db:
+  defines: runnable
+  inherits: mariadb/mariadb
+
+api:
+  defines: runnable
+  containers:
+    api:
+      image: myorg/api
+  connections:
+    database:
+      runnable: db
+      service: mariadb
+  variables:
+    database-host:
+      value: <- connection-hostname("database")
+    database-user:
+      value: <- secret("mysql-user")
+    database-password:
+      value: <- secret("mysql-password")
+    database-name:
+      value: <- secret("mysql-database")
+```
+
+Then set the secrets once and run your app group:
+
+```bash
+monk secrets add -g mysql-user="appuser"
+monk secrets add -g mysql-password="STRONG_USER_PASSWORD"
+monk secrets add -g mysql-database="appdb"
+monk secrets add -g mysql-root-password="STRONG_ROOT_PASSWORD"
+
+monk run myapp/api
+```
+
+## Ports and connectivity
+
+- Service: `mariadb` on TCP port `3306`
+- From other runnables in the same process group, use `connection-hostname("<connection-name>")` to resolve the DB host.
+
+## Persistence and configuration
+
+- Data path: `${monk-volume-path}/mariadb:/var/lib/mysql/`
+- Config path: `${monk-volume-path}/mariadb-conf:/etc/mysql/conf.d`
+- You can drop additional `.cnf` files into the config path to tune MariaDB.
+
+## Related templates
+
+- High‑availability cluster: see the `mariadb-ha/` template in this repository for a master + slaves setup.
+
+## Troubleshooting
+
+- If you changed `mysql-root-password` but the container has existing data, authentication may fail. Either reset the data volume or update the password inside the DB to match.
+- Ensure the host volumes are writable by the container user.
+- Check logs:
+
+```bash
+monk logs -l 500 -f local/mariadb/mariadb
+```
+
+
