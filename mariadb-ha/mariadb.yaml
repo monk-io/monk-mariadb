@@ -21,14 +21,14 @@ mariadb-common:
       container: mariadb
       protocol: tcp
   connections:
-    master:
-      runnable: mariadb-cluster/master
+    leader:
+      runnable: mariadb-cluster/leader
       service: mariadb-svc
-    slave1:
-      runnable: mariadb-cluster/slave1
+    follower1:
+      runnable: mariadb-cluster/follower1
       service: mariadb-svc
-    slave2:
-      runnable: mariadb-cluster/slave2
+    follower2:
+      runnable: mariadb-cluster/follower2
       service: mariadb-svc
   variables:
     image_tag:
@@ -51,13 +51,13 @@ mariadb-common:
       value: <- $mariadb_database_root_password default("RhgDPXPEnAgJ5q5g")
       type: string
 
-master:
+leader:
   defines: runnable
   inherits: mariadb-cluster/mariadb-common
   containers:
     mariadb:
       paths:
-        - <- `${monk-volume-path}/mariadb-master:/var/lib/mysql`
+        - <- `${monk-volume-path}/mariadb-leader:/var/lib/mysql`
       image-tag: <- $image_tag
       image: mariadb
   files:
@@ -67,7 +67,7 @@ master:
         [mysqld]
         server-id=1
         log-bin=mysql-bin
-        log-slave-updates=1
+        log-replica-updates=1
         datadir=/var/lib/mysql/
         innodb_flush_log_at_trx_commit = 2
         innodb_flush_method = O_DIRECT
@@ -75,17 +75,17 @@ master:
         skip-name-resolve
         default-authentication-plugin=mysql_native_password
       container: mariadb
-      path: /etc/mysql/conf.d/master.cnf
+      path: /etc/mysql/conf.d/leader.cnf
       mode: 644
 
-slave1:
+follower1:
   defines: runnable
   inherits: mariadb-cluster/mariadb-common
   containers:
     mariadb:
       image-tag: <- $image_tag
       paths:
-        - <- `${monk-volume-path}/mariadb-slave1:/var/lib/mysql`
+        - <- `${monk-volume-path}/mariadb-follower1:/var/lib/mysql`
       image: mariadb
   files:
     my-file:
@@ -94,27 +94,27 @@ slave1:
         [mysqld]
         server-id=2
         log-bin=mysql-bin
-        log-slave-updates=1
+        log-replica-updates=1
         auto_increment_increment=2
         auto_increment_offset=2
         datadir=/var/lib/mysql
         read-only=1
-        slave-skip-errors = 1062
+        replica-skip-errors = 1062
         skip-host-cache
         skip-name-resolve
         default-authentication-plugin=mysql_native_password
       container: mariadb
-      path: /etc/mysql/conf.d/slave1.cnf
+      path: /etc/mysql/conf.d/follower1.cnf
       mode: 644
 
-slave2:
+follower2:
   defines: runnable
   inherits: mariadb-cluster/mariadb-common
   containers:
     mariadb:
       image-tag: <- $image_tag
       paths:
-        - <- `${monk-volume-path}/mariadb-slave2:/var/lib/mysql`
+        - <- `${monk-volume-path}/mariadb-follower2:/var/lib/mysql`
       image: mariadb
   files:
     my-file:
@@ -123,25 +123,25 @@ slave2:
         [mysqld]
         server-id=3
         log-bin=mysql-bin
-        log-slave-updates=1
+        log-replica-updates=1
         auto_increment_increment=2
         auto_increment_offset=2
         datadir=/var/lib/mysql
         read-only=1
-        slave-skip-errors = 1062
+        replica-skip-errors = 1062
         skip-host-cache
         skip-name-resolve
         default-authentication-plugin=mysql_native_password
       container: mariadb
-      path: /etc/mysql/conf.d/slave2.cnf
+      path: /etc/mysql/conf.d/follower2.cnf
       mode: 644
 
 configure:
   defines: runnable
   inherits: mariadb-cluster/mariadb-common
   variables:
-    mariadb_master_password:
-      env: MYSQL_MASTER_PASSWORD
+    mariadb_leader_password:
+      env: MYSQL_LEADER_PASSWORD
       type: string
       value: <- $mariadb_database_root_password
     mariadb_repl_user:
@@ -160,18 +160,18 @@ configure:
       env: MYSQL_MONITOR_USER
       value: <- $mariadb_database_monitor_user
       type: string
-    database_master_host:
-      env: MYSQL_MASTER_HOST
+    database_leader_host:
+      env: MYSQL_LEADER_HOST
       type: string
-      value: <- connection-hostname("master")
-    database_slave1_host:
-      env: MYSQL_SLAVE1_HOST
+      value: <- connection-hostname("leader")
+    database_follower1_host:
+      env: MYSQL_FOLLOWER1_HOST
       type: string
-      value: <- connection-hostname("slave1")
-    mariadb-slave2-host:
-      env: MYSQL_SLAVE2_HOST
+      value: <- connection-hostname("follower1")
+    mariadb-follower2-host:
+      env: MYSQL_FOLLOWER2_HOST
       type: string
-      value: <- connection-hostname("slave2")
+      value: <- connection-hostname("follower2")
   containers:
     mariadb:
       bash: /tmp/init.sh
@@ -183,35 +183,35 @@ configure:
       contents: |
         #!/bin/sh
         sleep 20
-        while ! mysqladmin ping -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST --silent; do
+        while ! mysqladmin ping -u root -h $MYSQL_LEADER_HOST -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST --silent; do
           sleep 1
         done
-        mysql -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD  -e "RESET MASTER;"
-        mysql -u root -h $MYSQL_MASTER_HOST -p$MYSQL_ROOT_PASSWORD  -e "FLUSH TABLES WITH READ LOCK;"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "UNLOCK TABLES;"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_ROOT_PASSWORD';"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "CREATE USER '$MYSQL_MONITOR_USER'@'%' IDENTIFIED BY '$MYSQL_MONITOR_PASSWORD';"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "FLUSH PRIVILEGES;"
-        mysqldump -uroot -h $MYSQL_MASTER_HOST  -p$MYSQL_ROOT_PASSWORD --all-databases --source-data --single-transaction --flush-logs --events --result-file=/tmp/master_dump.sql
-        mysql -h $MYSQL_SLAVE1_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP SLAVE;";
-        mysql -h $MYSQL_SLAVE1_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/master_dump.sql
-        mysql -h $MYSQL_SLAVE2_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP SLAVE;";
-        mysql -h $MYSQL_SLAVE2_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/master_dump.sql
-        log_file=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "SHOW MASTER STATUS\G" | grep File: | awk '{print $2}'`
-        pos=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_MASTER_HOST -e "SHOW MASTER STATUS\G" | grep Position: | awk '{print $2}'`
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "RESET SLAVE";
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "CHANGE MASTER TO MASTER_HOST='$MYSQL_MASTER_HOST', MASTER_USER='root', MASTER_PASSWORD='$MYSQL_ROOT_PASSWORD', MASTER_LOG_FILE='${log_file}', MASTER_LOG_POS=${pos};"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE1_HOST -e "start slave"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "RESET SLAVE";
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "CHANGE MASTER TO MASTER_HOST='$MYSQL_MASTER_HOST', MASTER_USER='root', MASTER_PASSWORD='$MYSQL_ROOT_PASSWORD', MASTER_LOG_FILE='${log_file}', MASTER_LOG_POS=${pos};"
-        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_SLAVE2_HOST -e "start slave"
+        mysql -u root -h $MYSQL_LEADER_HOST -p$MYSQL_ROOT_PASSWORD  -e "RESET BINARY LOGS AND GTIDS;"
+        mysql -u root -h $MYSQL_LEADER_HOST -p$MYSQL_ROOT_PASSWORD  -e "FLUSH TABLES WITH READ LOCK;"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "UNLOCK TABLES;"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_ROOT_PASSWORD';"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "CREATE USER '$MYSQL_MONITOR_USER'@'%' IDENTIFIED BY '$MYSQL_MONITOR_PASSWORD';"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "FLUSH PRIVILEGES;"
+        mysqldump -uroot -h $MYSQL_LEADER_HOST  -p$MYSQL_ROOT_PASSWORD --all-databases --source-data --single-transaction --flush-logs --events --result-file=/tmp/leader_dump.sql
+        mysql -h $MYSQL_FOLLOWER1_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP REPLICA;";
+        mysql -h $MYSQL_FOLLOWER1_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/leader_dump.sql
+        mysql -h $MYSQL_FOLLOWER2_HOST -u root -p$MYSQL_ROOT_PASSWORD -e "STOP REPLICA;";
+        mysql -h $MYSQL_FOLLOWER2_HOST -u root -p$MYSQL_ROOT_PASSWORD < /tmp/leader_dump.sql
+        log_file=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "SHOW BINARY LOG STATUS\G" | grep File: | awk '{print $2}'`
+        pos=`mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_LEADER_HOST -e "SHOW BINARY LOG STATUS\G" | grep Position: | awk '{print $2}'`
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER1_HOST -e "RESET REPLICA";
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER1_HOST -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='$MYSQL_LEADER_HOST', SOURCE_USER='root', SOURCE_PASSWORD='$MYSQL_ROOT_PASSWORD', SOURCE_LOG_FILE='${log_file}', SOURCE_LOG_POS=${pos};"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER1_HOST -e "start replica"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER2_HOST -e "RESET REPLICA";
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER2_HOST -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST='$MYSQL_LEADER_HOST', SOURCE_USER='root', SOURCE_PASSWORD='$MYSQL_ROOT_PASSWORD', SOURCE_LOG_FILE='${log_file}', SOURCE_LOG_POS=${pos};"
+        mysql -u root -p$MYSQL_ROOT_PASSWORD -h $MYSQL_FOLLOWER2_HOST -e "start replica"
       container: mariadb
       path: /tmp/init.sh
       mode: 755
   depends:
     wait-for:
       runnables:
-        - mariadb-cluster/master
-        - mariadb-cluster/slave1
-        - mariadb-cluster/slave2
+        - mariadb-cluster/leader
+        - mariadb-cluster/follower1
+        - mariadb-cluster/follower2
       timeout: 60

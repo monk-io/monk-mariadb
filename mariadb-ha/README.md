@@ -52,9 +52,9 @@ The current variables can be found in `mariadb-ha/variables` section
     mariadb_database_name:
       value: "monk"
       type: string
-    mariadb_master_database_port: 3306
-    mariadb_slave1_database_port: 3307
-    mariadb_slave2_database_port: 3308
+    mariadb_leader_database_port: 3306
+    mariadb_follower1_database_port: 3307
+    mariadb_follower2_database_port: 3308
     mariadb_database_password: "RhgDPXPEnAgxxXYZ"
     mariadb_image_tag:
       value: "10.10"
@@ -112,29 +112,29 @@ Once cluster is ready execute the same command as for local and select your clus
 
 ✨ Loaded:
  ├─🔩 Runnables:
- │  ├─🧩 monk-mariadb-master-slave/slave2
- │  ├─🧩 monk-mariadb-master-slave/configure
- │  ├─🧩 monk-mariadb-master-slave/master
- │  └─🧩 monk-mariadb-master-slave/slave1
+ │  ├─🧩 monk-mariadb-leader-follower/follower2
+ │  ├─🧩 monk-mariadb-leader-follower/configure
+ │  ├─🧩 monk-mariadb-leader-follower/leader
+ │  └─🧩 monk-mariadb-leader-follower/follower1
  ├─🔗 Process groups:
- │  └─🧩 monk-mariadb-master-slave/stack
+ │  └─🧩 monk-mariadb-leader-follower/stack
  └─⚙️ Entity instances:
-    └─🧩 monk-mariadb-master-slave/stack/metadata
+    └─🧩 monk-mariadb-leader-follower/stack/metadata
 ✔ All templates loaded successfully
 
-➜  monk list monk-mariadb-master-slave
+➜  monk list monk-mariadb-leader-follower
 
 ✔ Got the list
-Type      Template                             Repository  Version  Tags
-runnable  monk-mariadb-master-slave/configure  local       -        -
-runnable  monk-mariadb-master-slave/master     local       -        -
-runnable  monk-mariadb-master-slave/slave1     local       -        -
-runnable  monk-mariadb-master-slave/slave2     local       -        -
-group     monk-mariadb-master-slave/stack      local       -        self hosted, database
+Type      Template                                Repository  Version  Tags
+runnable  monk-mariadb-leader-follower/configure  local       -        -
+runnable  monk-mariadb-leader-follower/leader     local       -        -
+runnable  monk-mariadb-leader-follower/follower1  local       -        -
+runnable  monk-mariadb-leader-follower/follower2  local       -        -
+group     monk-mariadb-leader-follower/stack      local       -        self hosted, database
 
 
 
-➜  monk run monk-mariadb-master-slave/stack
+➜  monk run monk-mariadb-leader-follower/stack
 
 ✔ Started local/mariadb/stack
 
@@ -143,20 +143,20 @@ group     monk-mariadb-master-slave/stack      local       -        self hosted,
 ## Logs & Shell
 
 ```bash
-# show Mariadb master logs
-➜  monk logs -l 1000 -f local/monk-mariadb-master-slave/master
+# show Mariadb leader logs
+➜  monk logs -l 1000 -f local/monk-mariadb-leader-follower/leader
 
-# show Mariadb slave1 logs
-➜  monk logs -l 1000 -f local/monk-mariadb-master-slave/slave1
+# show Mariadb follower1 logs
+➜  monk logs -l 1000 -f local/monk-mariadb-leader-follower/follower1
 
-# show Mariadb slave2 logs
-➜  monk logs -l 1000 -f local/monk-mariadb-master-slave/slave2
+# show Mariadb follower2 logs
+➜  monk logs -l 1000 -f local/monk-mariadb-leader-follower/follower2
 
 ```
 
 ## Stop, remove and clean up workloads and templates
 
 ```bash
-➜ monk purge monk-mariadb-master-slave/stack 
+➜ monk purge monk-mariadb-leader-follower/stack 
 
 ```
